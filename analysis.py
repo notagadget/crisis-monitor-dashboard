@@ -4,7 +4,8 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 """
 
 import re
-from config import POSITIONS, JETS_PUT, SIGNAL_NAMES, WAITING_LIST
+from datetime import date
+from config import POSITIONS, JETS_PUT, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
@@ -76,12 +77,13 @@ def score_signals(signals: dict) -> dict:
             "action": "All clear — hold positions", "color": "#3dd880"}
 
 
-# ── PROMPT ────────────────────────────────────────────────────────────────────
+# ── DAILY ANALYSIS PROMPT ─────────────────────────────────────────────────────
 
-def build_prompt(prices: dict, jets_option_price: float | None, signals: dict) -> str:
+def build_prompt(prices: dict, jets_option_price: float | None,
+                 signals: dict, markets_str: str = "") -> str:
     """
     Build the Claude analysis prompt from live data.
-    Keeping this in one place makes prompt iteration fast.
+    markets_str: formatted prediction market string from kalshi.format_markets_for_prompt()
     """
     sig_ctx = "\n".join(
         f"{i+1}. {SIGNAL_NAMES[sid]}: "
@@ -96,7 +98,9 @@ def build_prompt(prices: dict, jets_option_price: float | None, signals: dict) -
         f"{w['ticker']} ({w['when'].lower()})" for w in WAITING_LIST
     )
 
-    return f"""You are a geopolitical crisis trading analyst. Today is April 1, 2026.
+    markets_section = f"\n{markets_str}\n" if markets_str else ""
+
+    return f"""You are a geopolitical crisis trading analyst. Today is {date.today().strftime('%B %d, %Y')}.
 
 THESIS POSITIONS (live prices):
 - RTX:  ${prices.get('RTX', 'N/A')} (entry $185.84, stop $184) | Apr 28 earnings
@@ -109,16 +113,7 @@ THESIS POSITIONS (live prices):
 LEGACY HOLDS (excluded from thesis eval):
 - GLD 10sh: ${prices.get('GLD', 'N/A')} (entry $281.57) — hold
 - VTV 10sh: ${prices.get('VTV', 'N/A')} (entry $132.06) — hold
-
-MARCH 31 DEVELOPMENTS:
-- S&P +2.91%, Nasdaq +3.83% — best day since May
-- Pezeshkian "open to talks with guarantees" — UNCONFIRMED, state media disputed
-- Trump NYPost: Hormuz "automatically opens" after US leaves
-- RTX only +0.7% vs mkt +2.9% on peace-hope defense selloff
-- JETS +4.2% — adversarial for puts; underlying near stop
-- GLD +3.4% with equities — unusual, embedded inflation signal
-- Hormuz physically closed · Iran struck Kuwaiti tanker · Polymarket 82% no-Hormuz by Apr 30
-
+{markets_section}
 EXIT SIGNAL STATUS:
 {sig_ctx}
 
@@ -132,6 +127,82 @@ Respond with exactly 5 sections, under 70 words each:
 3. POSITION ALERTS — focus on JETS stop proximity and RTX recovery
 4. WAITING LIST — which entries are ready to execute now
 5. KEY RISK before April 6"""
+
+
+# ── MORNING SYNC PROMPT ───────────────────────────────────────────────────────
+
+def build_sync_prompt(prices: dict, jets_option_price: float | None,
+                      current_signals: dict, markets_str: str) -> str:
+    """
+    Prompt for the Morning Sync AI pass.
+    Claude returns structured JSON with:
+      - day_summary_label: str
+      - day_summary_body: str (plain text, no HTML)
+      - signal_suggestions: {sid: {suggested: 0|1|2, reason: str}}
+      - waiting_list_suggestions: [{ticker, suggested_status, suggested_when, reason}]
+      - key_insight: str (1 sentence, most important thing right now)
+    """
+    today = date.today().strftime("%B %d, %Y")
+    jets_str = f"${jets_option_price:.2f}" if jets_option_price else "market closed"
+
+    sig_ctx = "\n".join(
+        f'  "{sid}": {{"current": {current_signals[sid]}, '
+        f'"name": "{SIGNAL_NAMES[sid]}", "desc": "{SIGNAL_DESC[sid]}"}}'
+        for sid in SIGNAL_NAMES
+    )
+
+    wait_ctx = "\n".join(
+        f'  {{"ticker": "{w["ticker"]}", "current_status": "{w["status"]}", '
+        f'"cond": "{w["cond"]}"}}'
+        for w in WAITING_LIST
+    )
+
+    return f"""You are a geopolitical crisis trading analyst. Today is {today}.
+Your job is to produce a structured morning briefing update in JSON.
+
+CURRENT LIVE PRICES:
+- RTX: ${prices.get('RTX', 'N/A')} (entry $185.84, stop $180)
+- NOC: ${prices.get('NOC', 'N/A')} (entry $678.35, stop $631)
+- LIN: ${prices.get('LIN', 'N/A')} (entry $495.85, stop $456)
+- JETS underlying: ${prices.get('JETS', 'N/A')} | put last: {jets_str} | stop >$27
+- VTIP: ${prices.get('VTIP', 'N/A')} (entry $49.935, stop $47.50)
+- GLD: ${prices.get('GLD', 'N/A')} | VTV: ${prices.get('VTV', 'N/A')}
+
+{markets_str}
+
+CURRENT EXIT SIGNALS (0=clear, 1=caution, 2=triggered):
+{sig_ctx}
+
+WAITING LIST (current status):
+{wait_ctx}
+
+THESIS CONTEXT:
+Operation Epic Fury (Feb 28): US/Israel struck Iran, Hormuz closed (~20% global oil).
+Pezeshkian "open to talks" signal unconfirmed, disputed by Iranian state media.
+White House said Hormuz reopening is NOT a core objective of the operation.
+New supreme leader Mojtaba Khamenei said Hormuz leverage "must continue to be used."
+Exit rule: 2+ signals triggered = reduce energy longs 30-40%.
+Signal states: 0=clear, 1=caution, 2=triggered.
+
+Respond ONLY with valid JSON, no preamble, no markdown fences:
+{{
+  "day_summary_label": "Day N Close · {today}",
+  "day_summary_body": "plain text summary under 60 words, no HTML tags",
+  "signal_suggestions": {{
+    "s1": {{"suggested": 0, "reason": "one sentence"}},
+    "s2": {{"suggested": 0, "reason": "one sentence"}},
+    "s3": {{"suggested": 1, "reason": "one sentence"}},
+    "s4": {{"suggested": 1, "reason": "one sentence"}},
+    "s5": {{"suggested": 0, "reason": "one sentence"}},
+    "s6": {{"suggested": 0, "reason": "one sentence"}},
+    "s7": {{"suggested": 1, "reason": "one sentence"}},
+    "s8": {{"suggested": 1, "reason": "one sentence"}}
+  }},
+  "waiting_list_suggestions": [
+    {{"ticker": "XOM / CVX", "suggested_status": "ready", "suggested_when": "✓ Enter This Week", "reason": "one sentence"}}
+  ],
+  "key_insight": "single most important thing the trader needs to know right now"
+}}"""
 
 
 # ── AI OUTPUT RENDERER ────────────────────────────────────────────────────────

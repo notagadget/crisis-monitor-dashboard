@@ -19,7 +19,6 @@ def fetch_prices() -> dict[str, float]:
         data = yf.download(PRICE_TICKERS, period="1d", interval="1m", progress=False)
         return {t: float(data["Close"][t].iloc[-1]) for t in PRICE_TICKERS}
     except Exception:
-        # Return empty dict — callers should handle missing keys with .get(t, fallback)
         return {}
 
 
