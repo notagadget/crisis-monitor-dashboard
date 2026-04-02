@@ -38,14 +38,14 @@ DRY_POWDER = 16_500
 # Default state: 0=clear, 1=caution, 2=triggered
 # Update defaults here when a signal's status changes materially between sessions
 SIGNAL_DEFAULTS = {
-    "s1": 0,,  # Shipping insurance declining
-    "s2": 0,,  # Futures curve flattening
-    "s3": 1,,  # Xi–Trump diplomatic signal      ← CAUTION
-    "s4": 1,,  # Iranian pragmatist signals       ← CAUTION
-    "s5": 0,,  # Linde/APD force majeure lifted
-    "s6": 0,,  # SPR drawdown slowing
-    "s7": 1,,  # Media maximum consensus          ← CAUTION
-    "s8": 1,,  # Trump resolution post            ← CAUTION
+    "s1": 0,  # Shipping insurance declining
+    "s2": 0,  # Futures curve flattening
+    "s3": 1,  # Xi–Trump diplomatic signal      ← CAUTION
+    "s4": 1,  # Iranian pragmatist signals       ← CAUTION
+    "s5": 0,  # Linde/APD force majeure lifted
+    "s6": 0,  # SPR drawdown slowing
+    "s7": 1,  # Media maximum consensus          ← CAUTION
+    "s8": 1,  # Trump resolution post            ← CAUTION
 }
 
 SIGNAL_NAMES = {

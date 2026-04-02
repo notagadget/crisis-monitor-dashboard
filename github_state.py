@@ -69,16 +69,41 @@ def patch_day_summary(config_text: str, label: str, body: str) -> str:
 
 
 def patch_signal_defaults(config_text: str, signals: dict) -> str:
-    """Replace SIGNAL_DEFAULTS dict values with new signal states."""
-    def replace_signal(m):
-        sid = m.group(1)
-        comment = m.group(3) or ""
-        new_val = signals.get(sid, int(m.group(2)))
-        return f'    "{sid}": {new_val},{comment}'
+    """
+    Replace the entire SIGNAL_DEFAULTS block atomically.
+    Preserves inline comments from the original file.
+    """
+    # Extract the existing block to preserve comments
+    block_match = re.search(
+        r'(SIGNAL_DEFAULTS\s*=\s*\{)(.*?)(\})',
+        config_text, flags=re.DOTALL
+    )
+    if not block_match:
+        return config_text
 
-    pattern = r'    "([s]\d+)":\s*(\d)(.*)'
-    result = re.sub(pattern, replace_signal, config_text)
-    return result
+    existing_block = block_match.group(2)
+
+    # Build comment map from existing lines: {sid: "  # comment text"} or {sid: ""}
+    comment_map = {}
+    for line in existing_block.splitlines():
+        m = re.match(r'\s*"(s\d+)":\s*\d(.*)', line)
+        if m:
+            sid = m.group(1)
+            rest = m.group(2)
+            # rest is like ",  # Shipping insurance..." — strip the leading comma
+            comment = re.sub(r'^\s*,', '', rest)
+            comment_map[sid] = comment
+
+    # Reconstruct the block with new values, preserved comments
+    sid_order = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"]
+    lines = []
+    for sid in sid_order:
+        val     = signals.get(sid, 0)
+        comment = comment_map.get(sid, "")
+        lines.append(f'    "{sid}": {val},{comment}')
+
+    new_block = "SIGNAL_DEFAULTS = {\n" + "\n".join(lines) + "\n}"
+    return config_text[:block_match.start()] + new_block + config_text[block_match.end():]
 
 
 def patch_waiting_list_status(config_text: str, ticker: str, new_status: str,
