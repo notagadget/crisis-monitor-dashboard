@@ -113,7 +113,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         st.session_state.sync_committed = False
 
         with st.spinner("Fetching prediction markets..."):
-            kalshi_data = fetch_kalshi_markets(KALSHI_KEY) if KALSHI_KEY else {}
+            kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else {}
             poly_data   = fetch_polymarket_odds()
             markets_str = format_markets_for_prompt(kalshi_data, poly_data)
             st.session_state.markets_str = markets_str

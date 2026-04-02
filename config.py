@@ -2,6 +2,9 @@
 config.py — static constants only. Edit this file to update positions,
 signals, waiting list entries, or calendar events. No logic here.
 """
+# App Version Number
+APP_VERSION = "v0.6"
+
 
 # ── POSITIONS ─────────────────────────────────────────────────────────────────
 # thesis: True = included in thesis P&L bucket
@@ -11,8 +14,8 @@ POSITIONS = {
     "NOC":  {"shares": 2,   "entry": 678.35, "stop": 631.00, "type": "Equity", "thesis": True},
     "LIN":  {"shares": 6,   "entry": 495.85, "stop": 456.00, "type": "Equity", "thesis": True},
     "VTIP": {"shares": 40,  "entry": 49.935, "stop": 47.50,  "type": "Equity", "thesis": True},
-    "GLD":  {"shares": 10,  "entry": 281.57, "stop": None,   "type": "Equity", "thesis": False},
-    "VTV":  {"shares": 10,  "entry": 132.06, "stop": None,   "type": "Equity", "thesis": False},
+    "GLD":  {"shares": 10,  "entry": 414.57, "stop": None,   "type": "Equity", "thesis": False},
+    "VTV":  {"shares": 10,  "entry": 194.16, "stop": None,   "type": "Equity", "thesis": False},
 }
 
 # Options position — one structured dict keeps all option math in one place
@@ -81,7 +84,7 @@ SCENARIOS = [
 ]
 
 DEADLINE_ISO = "2026-04-06T20:00:00"   # ET — Iran ultimatum
-DEADLINE_TZ  = "US/Eastern"
+DEADLINE_TZ  = "America/Detroit"
 
 # ── WAITING LIST ──────────────────────────────────────────────────────────────
 # status options: ready | event | watching | patience

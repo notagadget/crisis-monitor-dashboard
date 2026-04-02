@@ -5,7 +5,7 @@ No data fetching or business logic here.
 """
 
 from config import (
-    POSITIONS, JETS_PUT, SCENARIOS, WAITING_LIST, CALENDAR, DAY_SUMMARY, DRY_POWDER
+    APP_VERSION, JETS_PUT, SCENARIOS, WAITING_LIST, CALENDAR, DAY_SUMMARY, DRY_POWDER
 )
 
 
@@ -137,8 +137,8 @@ def header_html() -> str:
     return """
 <div class="hdr">
   <div>
-    <div class="brand">CRISIS TRADE MONITOR v6</div>
-    <div class="brand-sub">Hormuz · Helium · False Dawn &nbsp;|&nbsp; April 1, 2026</div>
+    <div class="brand">CRISIS TRADE MONITOR v0.6</div>
+    <div class="brand-sub">Hormuz · Helium · False Dawn &nbsp;|&nbsp; April 2, 2026</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
     <span class="pill-live"><span class="pdot"></span>Live</span>
