@@ -42,11 +42,10 @@ st.set_page_config(
 st.markdown(CSS, unsafe_allow_html=True)
 
 # ── SECRETS ───────────────────────────────────────────────────────────────────
-# All credentials live in Streamlit secrets — never in session or UI
 GITHUB_TOKEN  = st.secrets.get("GITHUB_TOKEN", "")
 GITHUB_REPO   = st.secrets.get("GITHUB_REPO", "notagadget/crisis-monitor-dashboard")
 KALSHI_KEY    = st.secrets.get("KALSHI_API_KEY", "")
-ANTHROPIC_KEY = st.secrets.get("ANTHROPIC_API_KEY", "")  # optional — falls back to UI input
+ANTHROPIC_KEY = st.secrets.get("ANTHROPIC_API_KEY", "")
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 if "signals" not in st.session_state:
@@ -57,17 +56,16 @@ if "ai_ts" not in st.session_state:
     st.session_state.ai_ts = ""
 if "api_key" not in st.session_state:
     st.session_state.api_key = ANTHROPIC_KEY
-# Morning Sync state
 if "sync_result" not in st.session_state:
-    st.session_state.sync_result = None          # parsed JSON from Claude
+    st.session_state.sync_result = None
 if "sync_approved_signals" not in st.session_state:
-    st.session_state.sync_approved_signals = {}  # {sid: bool}
+    st.session_state.sync_approved_signals = {}
 if "sync_committed" not in st.session_state:
     st.session_state.sync_committed = False
 if "markets_str" not in st.session_state:
     st.session_state.markets_str = ""
 
-# ── LIVE DATA (fetched once per page load) ────────────────────────────────────
+# ── LIVE DATA ─────────────────────────────────────────────────────────────────
 prices       = fetch_prices()
 option_price = fetch_option_price()
 opt_pnl, opt_pct = calc_option_pnl(option_price)
@@ -91,23 +89,20 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         st.markdown(
             '<div style="font-family:JetBrains Mono,monospace;font-size:10px;'
             'color:#5a6880;margin-bottom:8px;">'
-            'Fetches Kalshi/Polymarket odds → Claude drafts DAY_SUMMARY + suggests signal changes '
-            '→ you approve → commits config.py to GitHub → Streamlit redeploys (~60s).'
+            'Fetches Kalshi/Polymarket odds → Claude drafts DAY_SUMMARY, signals, scenario probabilities, '
+            'and a full intelligence brief → you approve → commits config.py → Streamlit redeploys (~60s).'
             '</div>',
             unsafe_allow_html=True,
         )
-
         run_sync = st.button("⚡ Run Morning Sync", use_container_width=False,
                              disabled=not (ANTHROPIC_KEY or st.session_state.api_key))
 
     with sync_col2:
-        # Show credential status
-        gh_ok    = "✅" if GITHUB_TOKEN  else "❌"
-        ka_ok    = "✅"
-        ai_ok    = "✅" if (ANTHROPIC_KEY or st.session_state.api_key) else "❌"
+        gh_ok = "✅" if GITHUB_TOKEN else "❌"
+        ai_ok = "✅" if (ANTHROPIC_KEY or st.session_state.api_key) else "❌"
         st.markdown(
             f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;line-height:2;">'
-            f'{gh_ok} GitHub token<br>{ka_ok} Kalshi key<br>{ai_ok} Anthropic key</div>',
+            f'{gh_ok} GitHub token<br>✅ Kalshi key<br>{ai_ok} Anthropic key</div>',
             unsafe_allow_html=True,
         )
 
@@ -118,18 +113,18 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         st.session_state.sync_committed = False
 
         with st.spinner("Fetching prediction markets..."):
-            kalshi_data  = fetch_kalshi_markets(KALSHI_KEY) if KALSHI_KEY else {}
-            poly_data    = fetch_polymarket_odds()
-            markets_str  = format_markets_for_prompt(kalshi_data, poly_data)
+            kalshi_data = fetch_kalshi_markets(KALSHI_KEY) if KALSHI_KEY else {}
+            poly_data   = fetch_polymarket_odds()
+            markets_str = format_markets_for_prompt(kalshi_data, poly_data)
             st.session_state.markets_str = markets_str
 
-        with st.spinner("Claude analyzing (~20s)..."):
+        with st.spinner("Claude analyzing (~25s) — brief + config patches..."):
             try:
                 key = ANTHROPIC_KEY or st.session_state.api_key
                 client = anthropic.Anthropic(api_key=key)
                 msg = client.messages.create(
                     model="claude-sonnet-4-20250514",
-                    max_tokens=1500,
+                    max_tokens=2500,   # increased — now includes ai_brief
                     system=(
                         "You are a geopolitical crisis trading analyst. "
                         "Respond ONLY with valid JSON as instructed. No preamble, no markdown."
@@ -143,17 +138,20 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                         ),
                     }],
                 )
-                raw = msg.content[0].text.strip()
-                # Strip accidental markdown fences
-                raw = raw.replace("```json", "").replace("```", "").strip()
+                raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
                 st.session_state.sync_result = json.loads(raw)
-                # Pre-approve all signal suggestions by default
                 sr = st.session_state.sync_result
+                # Pre-approve all signal suggestions
                 st.session_state.sync_approved_signals = {
                     sid: True for sid in sr.get("signal_suggestions", {})
                 }
+                # Auto-populate the main AI brief panel so it's ready immediately
+                if sr.get("ai_brief"):
+                    st.session_state.ai_output = sr["ai_brief"]
+                    import datetime
+                    st.session_state.ai_ts = datetime.datetime.now().strftime("%H:%M:%S") + " (Morning Sync)"
             except json.JSONDecodeError as e:
-                st.error(f"Claude returned malformed JSON: {e}\n\nRaw: {raw[:300]}")
+                st.error(f"Claude returned malformed JSON: {e}\n\nRaw: {raw[:400]}")
             except Exception as e:
                 st.error(f"Sync error: {e}")
 
@@ -173,7 +171,47 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
             )
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # DAY SUMMARY — auto-committed, just show preview
+        # ── INTELLIGENCE BRIEF ────────────────────────────────────────────────
+        if sr.get("ai_brief"):
+            st.markdown("**📡 Intelligence Brief** *(auto-populates main panel on commit)*")
+            st.markdown(
+                f'<div class="ai-box">{render_ai_html(sr["ai_brief"])}</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── SCENARIO PROBABILITIES ────────────────────────────────────────────
+        sp = sr.get("scenario_probabilities", {})
+        if sp:
+            st.markdown("**📊 Scenario Probability Update**")
+            sc_cols = st.columns(4)
+            scenario_meta = {
+                "A": {"label": "A — Resolution", "color": "#126030", "bg": "#ebf7f0", "border": "#24a060"},
+                "B": {"label": "B — Partial",    "color": "#1a6bb0", "bg": "#edf3fc", "border": "#2c68c0"},
+                "C": {"label": "C — Escalation", "color": "#a81828", "bg": "#fff0f2", "border": "#d83040"},
+            }
+            for i, (key, meta) in enumerate(scenario_meta.items()):
+                pct = sp.get(key, "—")
+                with sc_cols[i]:
+                    st.markdown(
+                        f'<div style="border:1.5px solid {meta["border"]};border-radius:6px;'
+                        f'padding:10px 14px;background:{meta["bg"]};text-align:center;">'
+                        f'<div style="font-size:22px;font-weight:700;color:{meta["color"]};">{pct}%</div>'
+                        f'<div style="font-size:11px;font-weight:600;color:{meta["color"]};">{meta["label"]}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+            with sc_cols[3]:
+                rationale = sr.get("scenario_rationale", "")
+                if rationale:
+                    st.markdown(
+                        f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;'
+                        f'color:#5a6880;padding:10px 0;line-height:1.6;">{rationale}</div>',
+                        unsafe_allow_html=True,
+                    )
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── DAY SUMMARY ───────────────────────────────────────────────────────
         st.markdown("**📋 Day Summary** *(auto-committed)*")
         st.markdown(
             f'<div style="background:#f4f6f9;border:1px solid #d0d5e0;border-radius:4px;'
@@ -185,7 +223,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         )
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # SIGNAL SUGGESTIONS — approval required per signal
+        # ── SIGNAL SUGGESTIONS ────────────────────────────────────────────────
         sig_sugg = sr.get("signal_suggestions", {})
         if sig_sugg:
             st.markdown("**🚦 Signal Suggestions** *(check to approve each)*")
@@ -198,18 +236,17 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 st.caption("No signal changes suggested.")
             else:
                 for sid, d in changed_signals.items():
-                    current  = st.session_state.signals.get(sid, 0)
+                    current   = st.session_state.signals.get(sid, 0)
                     suggested = d.get("suggested", current)
-                    reason   = d.get("reason", "")
-                    approved = st.session_state.sync_approved_signals.get(sid, True)
+                    reason    = d.get("reason", "")
+                    approved  = st.session_state.sync_approved_signals.get(sid, True)
                     col_a, col_b = st.columns([1, 8])
                     with col_a:
                         checked = st.checkbox("", value=approved, key=f"approve_{sid}")
                         st.session_state.sync_approved_signals[sid] = checked
                     with col_b:
                         st.markdown(
-                            f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;'
-                            f'padding:6px 0;">'
+                            f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;padding:6px 0;">'
                             f'<b>{SIGNAL_NAMES[sid]}</b>: '
                             f'{state_labels[current]} → {state_labels[suggested]}<br>'
                             f'<span style="color:#5a6880;">{reason}</span>'
@@ -218,7 +255,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                         )
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # WAITING LIST SUGGESTIONS — informational only (manual edit still required)
+        # ── WAITING LIST SUGGESTIONS ──────────────────────────────────────────
         wl_sugg = sr.get("waiting_list_suggestions", [])
         if wl_sugg:
             st.markdown("**📋 Waiting List Notes** *(informational — edit config.py to change)*")
@@ -233,40 +270,37 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 )
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # PREDICTION MARKETS RAW
+        # ── PREDICTION MARKETS RAW ────────────────────────────────────────────
         if st.session_state.markets_str:
             with st.expander("📊 Raw prediction market data used"):
                 st.code(st.session_state.markets_str)
 
-        # COMMIT BUTTON
+        # ── COMMIT BUTTON ─────────────────────────────────────────────────────
         if not GITHUB_TOKEN:
             st.warning("GITHUB_TOKEN not set in Streamlit secrets — cannot commit.")
         else:
-            commit_clicked = st.button(
-                "✅ Commit to GitHub → Redeploy",
-                type="primary",
-                use_container_width=False,
-            )
-            if commit_clicked:
-
+            if st.button("✅ Commit to GitHub → Redeploy", type="primary"):
                 with st.spinner("Reading current config.py from GitHub..."):
-
                     try:
                         config_text, sha = get_config_sha(GITHUB_REPO, GITHUB_TOKEN)
 
-                        # Always auto-apply DAY_SUMMARY
                         config_text = patch_day_summary(
                             config_text,
                             sr.get("day_summary_label", ""),
                             sr.get("day_summary_body", ""),
                         )
 
-                        # Apply only approved signal changes
                         new_signals = dict(st.session_state.signals)
                         for sid, d in sig_sugg.items():
                             if st.session_state.sync_approved_signals.get(sid):
                                 new_signals[sid] = d.get("suggested", new_signals[sid])
                         config_text = patch_signal_defaults(config_text, new_signals)
+
+                        # Patch scenario probabilities if provided
+                        sp = sr.get("scenario_probabilities", {})
+                        if sp:
+                            from github_state import patch_scenario_probabilities
+                            config_text = patch_scenario_probabilities(config_text, sp)
 
                         try:
                             compile(config_text, "config.py", "exec")
@@ -276,7 +310,6 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
 
                         commit_config(GITHUB_REPO, GITHUB_TOKEN, config_text, sha)
                         st.session_state.sync_committed = True
-                        # Update live session signals immediately
                         st.session_state.signals = new_signals
                         st.rerun()
                     except Exception as e:
@@ -292,7 +325,6 @@ with col_ai:
     st.markdown('<div class="sec-label">AI Intelligence Brief</div>', unsafe_allow_html=True)
     key_col, btn_col = st.columns([4, 1])
     with key_col:
-        # Only show API key input if not set in secrets
         if not ANTHROPIC_KEY:
             api_key = st.text_input(
                 "API Key", value=st.session_state.api_key,
@@ -326,14 +358,16 @@ with col_ai:
                         }],
                     )
                     st.session_state.ai_output = msg.content[0].text
-                    st.session_state.ai_ts = __import__("datetime").datetime.now().strftime("%H:%M:%S")
+                    import datetime
+                    st.session_state.ai_ts = datetime.datetime.now().strftime("%H:%M:%S")
                 except Exception as e:
                     st.error(f"API Error: {e}")
 
     if st.session_state.ai_output:
+        ts_label = st.session_state.ai_ts
         st.markdown(
             f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;margin-bottom:4px;">'
-            f'Updated {st.session_state.ai_ts}</div>',
+            f'Updated {ts_label}</div>',
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -344,9 +378,8 @@ with col_ai:
         st.markdown(
             '<div class="ai-box" style="text-align:center;padding:30px 20px;">'
             '<span style="font-family:IBM Plex Sans,sans-serif;font-size:12px;color:#5a6880;line-height:1.7;">'
-            'Enter your Anthropic API key and click <b>Run AI Analysis</b>.<br><br>'
-            'Claude will assess the situation, score exit signals, flag position risks,<br>'
-            'and identify waiting list entries ready to enter. (~15 seconds)'
+            'Run <b>Morning Sync</b> above for a full brief, or click <b>Run AI Analysis</b> for a quick refresh.<br><br>'
+            'Morning Sync includes prediction market data, scenario probabilities, and config patches.'
             '</span></div>',
             unsafe_allow_html=True,
         )
@@ -381,7 +414,6 @@ with pcols[4]:
 with pcols[5]:
     st.markdown(cash_card_html(), unsafe_allow_html=True)
 
-# Legacy holds
 st.markdown(
     '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;'
     'letter-spacing:1px;text-transform:uppercase;margin:12px 0 6px;'
@@ -396,7 +428,6 @@ for col, ticker in [(lc1, "GLD"), (lc2, "VTV")]:
     with col:
         st.markdown(legacy_card_html(ticker, price, pnl), unsafe_allow_html=True)
 
-# P&L buckets
 buck1, buck2 = st.columns(2)
 with buck1:
     st.markdown(thesis_bucket_html(thesis["equity_rows"], thesis["jets_pnl"], thesis["total"]), unsafe_allow_html=True)

@@ -49,11 +49,9 @@ def commit_config(repo: str, token: str, new_content: str, sha: str,
 
 
 # ── PATCH HELPERS ─────────────────────────────────────────────────────────────
-# These surgically replace sections in config.py without touching anything else.
 
 def patch_day_summary(config_text: str, label: str, body: str) -> str:
     """Replace DAY_SUMMARY dict in config.py with new label + body."""
-    # Use a greedy dotall match anchored to the assignment — much more robust
     new_block = (
         'DAY_SUMMARY = {\n'
         f'    "label": {json.dumps(label)},\n'
@@ -65,7 +63,6 @@ def patch_day_summary(config_text: str, label: str, body: str) -> str:
     pattern = r'DAY_SUMMARY\s*=\s*\{.*?\n\}'
     result = re.sub(pattern, new_block, config_text, flags=re.DOTALL)
     if result == config_text:
-        # Fallback: append if not found
         result = config_text.rstrip() + '\n\n' + new_block + '\n'
     return result
 
@@ -75,9 +72,8 @@ def patch_signal_defaults(config_text: str, signals: dict) -> str:
     Replace the entire SIGNAL_DEFAULTS block atomically.
     Preserves inline comments from the original file.
     """
-    # Extract the existing block to preserve comments
     block_match = re.search(
-        r'(SIGNAL_DEFAULTS\s*=\s*\{)(.*?)(\})',
+        r'(SIGNAL_DEFAULTS\s*=\s*\{)(.*?)(})',
         config_text, flags=re.DOTALL
     )
     if not block_match:
@@ -85,18 +81,15 @@ def patch_signal_defaults(config_text: str, signals: dict) -> str:
 
     existing_block = block_match.group(2)
 
-    # Build comment map from existing lines: {sid: "  # comment text"} or {sid: ""}
     comment_map = {}
     for line in existing_block.splitlines():
         m = re.match(r'\s*"(s\d+)":\s*\d(.*)', line)
         if m:
             sid = m.group(1)
             rest = m.group(2)
-            # rest is like ",  # Shipping insurance..." — strip the leading comma
             comment = re.sub(r'^\s*,', '', rest)
             comment_map[sid] = comment
 
-    # Reconstruct the block with new values, preserved comments
     sid_order = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"]
     lines = []
     for sid in sid_order:
@@ -108,13 +101,43 @@ def patch_signal_defaults(config_text: str, signals: dict) -> str:
     return config_text[:block_match.start()] + new_block + config_text[block_match.end():]
 
 
+def patch_scenario_probabilities(config_text: str, probs: dict) -> str:
+    """
+    Update the pct field on each SCENARIOS entry.
+    probs: {"A": 15, "B": 50, "C": 35}
+    Matches on scenario name substring (A —, B —, C —).
+    """
+    # Map scenario letter to name fragment used in config
+    letter_to_fragment = {
+        "A": "A — Resolution",
+        "B": "B — Partial",
+        "C": "C — Escalation",
+    }
+    result = config_text
+    for letter, fragment in letter_to_fragment.items():
+        pct = probs.get(letter)
+        if pct is None:
+            continue
+        # Replace pct in lines containing the scenario name
+        # Pattern: {"pct": "NN%", ... "name": "B — Partial..."}
+        # We do a targeted replace: find the dict entry for this scenario and swap pct
+        pattern = rf'(\{{\s*"pct":\s*")[\d]+%(",.*?"name":\s*"{re.escape(fragment)})'
+        replacement = rf'\g<1>{pct}%\g<2>'
+        new_result = re.sub(pattern, replacement, result, flags=re.DOTALL)
+        if new_result == result:
+            # Try alternate ordering (name before pct)
+            pattern2 = rf'("name":\s*"{re.escape(fragment)}[^"]*".*?"pct":\s*")[\d]+%(")'
+            replacement2 = rf'\g<1>{pct}%\g<2>'
+            new_result = re.sub(pattern2, replacement2, result, flags=re.DOTALL)
+        result = new_result
+    return result
+
+
 def patch_waiting_list_status(config_text: str, ticker: str, new_status: str,
                                new_when: str = None, new_cond: str = None) -> str:
     """
     Update the status (and optionally when/cond) for a single waiting list entry.
-    Matches on ticker string — safe for multi-ticker entries like 'XOM / CVX'.
     """
-    # Find the block for this ticker and update status
     escaped = re.escape(ticker)
     if new_when and new_cond:
         pattern = (

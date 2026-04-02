@@ -129,18 +129,23 @@ Respond with exactly 5 sections, under 70 words each:
 5. KEY RISK before April 6"""
 
 
-# ── MORNING SYNC PROMPT ───────────────────────────────────────────────────────
+# ── MORNING SYNC PROMPT (MERGED) ──────────────────────────────────────────────
 
 def build_sync_prompt(prices: dict, jets_option_price: float | None,
                       current_signals: dict, markets_str: str) -> str:
     """
-    Prompt for the Morning Sync AI pass.
-    Claude returns structured JSON with:
+    Combined morning sync prompt: Claude returns structured JSON with
+    config patches AND a full intelligence brief + updated scenario probabilities.
+
+    JSON fields:
       - day_summary_label: str
-      - day_summary_body: str (plain text, no HTML)
+      - day_summary_body: str (plain text, no HTML, ≤60 words)
       - signal_suggestions: {sid: {suggested: 0|1|2, reason: str}}
       - waiting_list_suggestions: [{ticker, suggested_status, suggested_when, reason}]
-      - key_insight: str (1 sentence, most important thing right now)
+      - scenario_probabilities: {A: int, B: int, C: int}  (must sum to 100)
+      - scenario_rationale: str  (≤40 words explaining the probability shift, if any)
+      - ai_brief: str  (the 5-section intelligence brief, same format as standalone analysis)
+      - key_insight: str (1 sentence)
     """
     today = date.today().strftime("%B %d, %Y")
     jets_str = f"${jets_option_price:.2f}" if jets_option_price else "market closed"
@@ -158,15 +163,16 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
     )
 
     return f"""You are a geopolitical crisis trading analyst. Today is {today}.
-Your job is to produce a structured morning briefing update in JSON.
+Produce a single JSON response combining a morning briefing AND a full intelligence brief.
 
 CURRENT LIVE PRICES:
-- RTX: ${prices.get('RTX', 'N/A')} (entry $185.84, stop $180)
-- NOC: ${prices.get('NOC', 'N/A')} (entry $678.35, stop $631)
-- LIN: ${prices.get('LIN', 'N/A')} (entry $495.85, stop $456)
-- JETS underlying: ${prices.get('JETS', 'N/A')} | put last: {jets_str} | stop >$27
+- RTX: ${prices.get('RTX', 'N/A')} (entry $185.84, stop $184) | Apr 28 earnings
+- NOC: ${prices.get('NOC', 'N/A')} (entry $678.35, stop $631) | Apr 21 earnings
+- LIN: ${prices.get('LIN', 'N/A')} (entry $495.85, stop $456) | Apr 30 earnings
+- JETS underlying: ${prices.get('JETS', 'N/A')} | put last: {jets_str} | paid $1.72 | stop JETS>$27
 - VTIP: ${prices.get('VTIP', 'N/A')} (entry $49.935, stop $47.50)
 - GLD: ${prices.get('GLD', 'N/A')} | VTV: ${prices.get('VTV', 'N/A')}
+- Dry powder: ~$16,500
 
 {markets_str}
 
@@ -180,14 +186,25 @@ THESIS CONTEXT:
 Operation Epic Fury (Feb 28): US/Israel struck Iran, Hormuz closed (~20% global oil).
 Pezeshkian "open to talks" signal unconfirmed, disputed by Iranian state media.
 White House said Hormuz reopening is NOT a core objective of the operation.
-New supreme leader Mojtaba Khamenei said Hormuz leverage "must continue to be used."
+New supreme leader Mojtaba Khamenei: Hormuz leverage "must continue to be used."
 Exit rule: 2+ signals triggered = reduce energy longs 30-40%.
-Signal states: 0=clear, 1=caution, 2=triggered.
+
+BASELINE SCENARIO PROBABILITIES (update based on latest signals + prediction markets):
+- A (Full resolution, Brent <$85): currently 15%
+- B (Partial resolution / convoy escorts, Brent $85–100): currently 50%
+- C (Escalation / Kharg strike, Brent $120–200): currently 35%
+
+AI BRIEF FORMAT — for the ai_brief field, write exactly 5 sections, each under 70 words:
+1. SITUATION UPDATE
+2. SIGNAL ASSESSMENT
+3. POSITION ALERTS — focus on JETS stop proximity and RTX recovery
+4. WAITING LIST — which entries are ready to execute now
+5. KEY RISK before April 6
 
 Respond ONLY with valid JSON, no preamble, no markdown fences:
 {{
-  "day_summary_label": "Day N Close · {today}",
-  "day_summary_body": "plain text summary under 60 words, no HTML tags",
+  "day_summary_label": "Day N · {today}",
+  "day_summary_body": "plain text under 60 words",
   "signal_suggestions": {{
     "s1": {{"suggested": 0, "reason": "one sentence"}},
     "s2": {{"suggested": 0, "reason": "one sentence"}},
@@ -201,6 +218,9 @@ Respond ONLY with valid JSON, no preamble, no markdown fences:
   "waiting_list_suggestions": [
     {{"ticker": "XOM / CVX", "suggested_status": "ready", "suggested_when": "✓ Enter This Week", "reason": "one sentence"}}
   ],
+  "scenario_probabilities": {{"A": 15, "B": 50, "C": 35}},
+  "scenario_rationale": "one sentence explaining any probability shift vs baseline",
+  "ai_brief": "1. SITUATION UPDATE:\\n<text>\\n\\n2. SIGNAL ASSESSMENT:\\n<text>\\n\\n3. POSITION ALERTS:\\n<text>\\n\\n4. WAITING LIST:\\n<text>\\n\\n5. KEY RISK:\\n<text>",
   "key_insight": "single most important thing the trader needs to know right now"
 }}"""
 
