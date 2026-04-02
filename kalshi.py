@@ -1,52 +1,45 @@
 """
-kalshi.py — fetch prediction market data from Kalshi and Polymarket.
-Returns normalized dicts ready for prompt injection and UI display.
+kalshi.py — Kalshi + Polymarket prediction market data.
+Kalshi market data is public — no auth key needed for reads.
+Base URL confirmed: https://api.elections.kalshi.com/trade-api/v2
 """
 
+import json
 import requests
 
 KALSHI_API = "https://api.elections.kalshi.com/trade-api/v2"
 
-# ── MARKET SLUGS ──────────────────────────────────────────────────────────────
-# These are the Kalshi event tickers most relevant to the Hormuz thesis.
-# Update slugs here if Kalshi renames markets.
-KALSHI_MARKETS = {
-    "hormuz":     "kxhormuznorm",      # Hormuz return to normal timing
-    "iran_nuclear_deal":   "kxusairanagreement",        # Iran nuclear deal odds
-    "oil_range":  "kxwtimax",           # Oil price max (WTI 2026)
-    "recession":  "kxrecssnber",          # US recession odds
+# WTI range markets — we fetch specific strike tiers most relevant to thesis
+# Scenario B: $85–100 (already there), Scenario C: $120–200
+WTI_STRIKES = [120, 150, 180]   # fetch these three tiers
+
+# Single binary markets (event_ticker → market_ticker)
+KALSHI_BINARY_MARKETS = {
+    "recession":        "KXRECSSNBER",       # US recession 2026 — verify ticker below
+    "iran_deal":        "KXUSAIRANAGREEMENT", # Iran nuclear deal — verify ticker
 }
 
-# Polymarket slugs (read via public API, no auth needed)
 POLYMARKET_SLUGS = {
     "hormuz_apr": "will-strait-of-hormuz-be-closed-on-april-30-2026",
 }
 
 
-# ── PUBLIC INTERFACE ──────────────────────────────────────────────────────────
-
-def fetch_kalshi_markets(api_key: str) -> dict:
-    """
-    Fetch all configured Kalshi markets.
-    Returns dict of {market_key: market_data} where market_data has:
-      - title: str
-      - yes_price: float (0–100, probability %)
-      - no_price: float
-      - volume: int
-      - status: str  (active | closed | settled)
-      - error: str | None
-    """
+def fetch_kalshi_markets(api_key: str = "") -> dict:
+    """Fetch WTI range markets + binary markets. No auth needed."""
     results = {}
-    for key, ticker in KALSHI_MARKETS.items():
-        results[key] = _fetch_single_kalshi(api_key, ticker)
+
+    # WTI range markets via event lookup
+    wti_markets = _fetch_wti_range_markets()
+    results["wti_range"] = wti_markets  # list of {strike, yes_pct, ticker}
+
+    # Binary markets
+    for key, ticker in KALSHI_BINARY_MARKETS.items():
+        results[key] = _fetch_single_market(ticker)
+
     return results
 
 
 def fetch_polymarket_odds() -> dict:
-    """
-    Fetch Polymarket odds for Hormuz closure (public API, no auth).
-    Returns dict with yes_price (%) or error.
-    """
     results = {}
     for key, slug in POLYMARKET_SLUGS.items():
         results[key] = _fetch_polymarket(slug)
@@ -54,55 +47,80 @@ def fetch_polymarket_odds() -> dict:
 
 
 def format_markets_for_prompt(kalshi: dict, polymarket: dict) -> str:
-    """Format prediction market data as a compact string for prompt injection."""
     lines = ["PREDICTION MARKETS (live odds):"]
 
-    labels = {
-        "hormuz":    "Kalshi — Hormuz return return to normal",
-        "iran_nuclear_deal":  "Kalshi — Iran Nuclear Deal",
-        "oil_range": "Kalshi — WTI oil price 2026 max",
-        "recession": "Kalshi — US recession 2026",
-    }
+    # WTI range — show the implied distribution
+    wti = kalshi.get("wti_range", [])
+    if wti and not isinstance(wti, dict):
+        lines.append("- Kalshi WTI 2026 max price odds:")
+        for tier in wti:
+            if not tier.get("error"):
+                lines.append(f"    >${tier['strike']}: {tier['yes_pct']}% YES")
+    else:
+        lines.append("- Kalshi WTI range: unavailable")
 
-    for key, label in labels.items():
-        d = kalshi.get(key, {})
-        if d.get("error"):
-            lines.append(f"- {label}: unavailable ({d['error']})")
-        else:
-            yes = d.get("yes_price", "?")
-            vol = d.get("volume", 0)
-            lines.append(f"- {label}: {yes}% YES · ${vol:,} volume")
+    # Recession
+    rec = kalshi.get("recession", {})
+    if rec.get("error"):
+        lines.append(f"- Kalshi US recession 2026: unavailable")
+    else:
+        lines.append(f"- Kalshi US recession 2026: {rec.get('yes_pct', '?')}% YES · {rec.get('title','')}")
 
+    # Iran deal
+    iran = kalshi.get("iran_deal", {})
+    if iran.get("error"):
+        lines.append(f"- Kalshi Iran deal: unavailable")
+    else:
+        lines.append(f"- Kalshi Iran nuclear deal: {iran.get('yes_pct', '?')}% YES")
+
+    # Polymarket Hormuz
     pm = polymarket.get("hormuz_apr", {})
     if pm.get("error"):
-        lines.append(f"- Polymarket — Hormuz return return to normal: unavailable")
+        lines.append("- Polymarket Hormuz closed Apr 30: unavailable")
     else:
-        lines.append(f"- Polymarket — Hormuz return return to normal: {pm.get('yes_price', '?')}% YES")
+        lines.append(f"- Polymarket Hormuz closed Apr 30: {pm.get('yes_price', '?')}% YES")
 
     return "\n".join(lines)
 
 
-# ── INTERNAL ──────────────────────────────────────────────────────────────────
+def _fetch_wti_range_markets() -> list:
+    """Fetch specific WTI strike tiers from the active KXWTIMAX-26DEC31 event."""
+    results = []
+    for strike in WTI_STRIKES:
+        ticker = f"KXWTIMAX-26DEC31-T{strike}"
+        try:
+            r = requests.get(f"{KALSHI_API}/markets/{ticker}", timeout=8)
+            if r.status_code == 404:
+                results.append({"strike": strike, "error": "not found"})
+                continue
+            r.raise_for_status()
+            m = r.json().get("market", {})
+            yes_raw = float(m.get("yes_bid_dollars", 0))
+            results.append({
+                "strike": strike,
+                "yes_pct": round(yes_raw * 100, 1),
+                "ticker": ticker,
+                "error": None,
+            })
+        except Exception as e:
+            results.append({"strike": strike, "error": str(e)[:60]})
+    return results
 
-def _fetch_single_kalshi(api_key: str, ticker: str) -> dict:
+
+def _fetch_single_market(ticker: str) -> dict:
+    """Fetch a single binary market by ticker."""
     try:
-        url = f"{KALSHI_API}/markets/{ticker}"
-        r = requests.get(
-            url,
-            headers={"Authorization": f"Token {api_key}"},
-            timeout=8,
-        )
+        r = requests.get(f"{KALSHI_API}/markets/{ticker}", timeout=8)
         if r.status_code == 404:
-            return {"error": f"market {ticker} not found"}
+            return {"error": f"{ticker} not found"}
         r.raise_for_status()
         m = r.json().get("market", {})
+        yes_raw = float(m.get("yes_bid_dollars", 0))
         return {
-            "title":     m.get("title", ticker),
-            "yes_price": round(m.get("yes_ask", 0) * 100, 1),
-            "no_price":  round(m.get("no_ask", 0) * 100, 1),
-            "volume":    m.get("volume", 0),
-            "status":    m.get("status", "unknown"),
-            "error":     None,
+            "title":   m.get("title", ticker),
+            "yes_pct": round(yes_raw * 100, 1),
+            "ticker":  ticker,
+            "error":   None,
         }
     except Exception as e:
         return {"error": str(e)[:80]}
@@ -110,22 +128,15 @@ def _fetch_single_kalshi(api_key: str, ticker: str) -> dict:
 
 def _fetch_polymarket(slug: str) -> dict:
     try:
-        # Polymarket gamma API — public, no auth
-        url = f"https://gamma-api.polymarket.com/markets?slug={slug}"
-        r = requests.get(url, timeout=8)
+        r = requests.get(f"https://gamma-api.polymarket.com/markets?slug={slug}", timeout=8)
         r.raise_for_status()
         data = r.json()
         if not data:
             return {"error": "no market found"}
-        market = data[0]
-        # outcomePrices is a JSON string like '["0.82", "0.18"]'
-        import json
-        prices = json.loads(market.get("outcomePrices", '["0","1"]'))
-        yes_price = round(float(prices[0]) * 100, 1)
+        prices = json.loads(data[0].get("outcomePrices", '["0","1"]'))
         return {
-            "title":     market.get("question", slug),
-            "yes_price": yes_price,
-            "volume":    int(float(market.get("volume", 0))),
+            "title":     data[0].get("question", slug),
+            "yes_price": round(float(prices[0]) * 100, 1),
             "error":     None,
         }
     except Exception as e:

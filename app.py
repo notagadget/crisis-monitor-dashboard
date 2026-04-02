@@ -103,7 +103,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
     with sync_col2:
         # Show credential status
         gh_ok    = "✅" if GITHUB_TOKEN  else "❌"
-        ka_ok    = "✅" if KALSHI_KEY    else "❌"
+        ka_ok    = "✅"
         ai_ok    = "✅" if (ANTHROPIC_KEY or st.session_state.api_key) else "❌"
         st.markdown(
             f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;line-height:2;">'
