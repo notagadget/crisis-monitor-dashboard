@@ -11,10 +11,10 @@ KALSHI_API = "https://api.elections.kalshi.com/trade-api/v2"
 # These are the Kalshi event tickers most relevant to the Hormuz thesis.
 # Update slugs here if Kalshi renames markets.
 KALSHI_MARKETS = {
-    "hormuz":     "HORMUZ-CLOSED-APR",      # Hormuz closure probability
-    "iran_war":   "IRAN-US-WAR-2026",        # Iran conflict escalation
-    "oil_range":  "OIL-MAY-RANGE",           # Oil price range (WTI May)
-    "recession":  "RECESSION-2026",          # US recession odds
+    "hormuz":     "kxhormuznorm",      # Hormuz return to normal timing
+    "iran_nuclear_deal":   "kxusairanagreement",        # Iran nuclear deal odds
+    "oil_range":  "kxwtimax",           # Oil price max (WTI 2026)
+    "recession":  "kxrecssnber",          # US recession odds
 }
 
 # Polymarket slugs (read via public API, no auth needed)
@@ -58,9 +58,9 @@ def format_markets_for_prompt(kalshi: dict, polymarket: dict) -> str:
     lines = ["PREDICTION MARKETS (live odds):"]
 
     labels = {
-        "hormuz":    "Kalshi — Hormuz closed Apr",
-        "iran_war":  "Kalshi — Iran/US conflict escalation",
-        "oil_range": "Kalshi — WTI oil price range",
+        "hormuz":    "Kalshi — Hormuz return return to normal",
+        "iran_nuclear_deal":  "Kalshi — Iran Nuclear Deal",
+        "oil_range": "Kalshi — WTI oil price 2026 max",
         "recession": "Kalshi — US recession 2026",
     }
 
@@ -75,9 +75,9 @@ def format_markets_for_prompt(kalshi: dict, polymarket: dict) -> str:
 
     pm = polymarket.get("hormuz_apr", {})
     if pm.get("error"):
-        lines.append(f"- Polymarket — Hormuz closed Apr 30: unavailable")
+        lines.append(f"- Polymarket — Hormuz return return to normal: unavailable")
     else:
-        lines.append(f"- Polymarket — Hormuz closed Apr 30: {pm.get('yes_price', '?')}% YES")
+        lines.append(f"- Polymarket — Hormuz return return to normal: {pm.get('yes_price', '?')}% YES")
 
     return "\n".join(lines)
 
