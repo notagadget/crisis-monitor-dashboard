@@ -138,8 +138,13 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                         ),
                     }],
                 )
-                raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-                st.session_state.sync_result = json.loads(raw)
+                import re
+
+                raw = msg.content[0].text.strip()
+                raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
+                raw = re.sub(r'```\s*$', '', raw, flags=re.MULTILINE)
+                raw = re.sub(r'\\u(?![0-9a-fA-F]{4})', r'\\\\u', raw)
+                st.session_state.sync_result = json.loads(raw.strip())
                 sr = st.session_state.sync_result
                 # Pre-approve all signal suggestions
                 st.session_state.sync_approved_signals = {
