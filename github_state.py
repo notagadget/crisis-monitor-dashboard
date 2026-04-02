@@ -102,12 +102,6 @@ def patch_signal_defaults(config_text: str, signals: dict) -> str:
 
 
 def patch_scenario_probabilities(config_text: str, probs: dict) -> str:
-    """
-    Update the pct field on each SCENARIOS entry.
-    probs: {"A": 15, "B": 50, "C": 35}
-    Matches on scenario name substring (A —, B —, C —).
-    """
-    # Map scenario letter to name fragment used in config
     letter_to_fragment = {
         "A": "A — Resolution",
         "B": "B — Partial",
@@ -118,16 +112,14 @@ def patch_scenario_probabilities(config_text: str, probs: dict) -> str:
         pct = probs.get(letter)
         if pct is None:
             continue
-        # Replace pct in lines containing the scenario name
-        # Pattern: {"pct": "NN%", ... "name": "B — Partial..."}
-        # We do a targeted replace: find the dict entry for this scenario and swap pct
-        pattern = rf'(\{{\s*"pct":\s*")[\d]+%(",.*?"name":\s*"{re.escape(fragment)})'
-        replacement = rf'\g<1>{pct}%\g<2>'
+        frag_escaped = re.escape(fragment)
+        # Use string concat instead of rf'' to avoid \{ ambiguity
+        pattern = r'({"pct":\s*")[\d]+%(".+?"name":\s*"' + frag_escaped + r'")'
+        replacement = r'\g<1>' + str(pct) + r'%\g<2>'
         new_result = re.sub(pattern, replacement, result, flags=re.DOTALL)
         if new_result == result:
-            # Try alternate ordering (name before pct)
-            pattern2 = rf'("name":\s*"{re.escape(fragment)}[^"]*".*?"pct":\s*")[\d]+%(")'
-            replacement2 = rf'\g<1>{pct}%\g<2>'
+            pattern2 = r'("name":\s*"' + frag_escaped + r'[^"]*".+?"pct":\s*")[\d]+%(")'
+            replacement2 = r'\g<1>' + str(pct) + r'%\g<2>'
             new_result = re.sub(pattern2, replacement2, result, flags=re.DOTALL)
         result = new_result
     return result
