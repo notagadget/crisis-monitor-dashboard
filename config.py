@@ -38,14 +38,14 @@ DRY_POWDER = 16_500
 # Default state: 0=clear, 1=caution, 2=triggered
 # Update defaults here when a signal's status changes materially between sessions
 SIGNAL_DEFAULTS = {
-    "s1": 0,  # Shipping insurance declining
-    "s2": 0,  # Futures curve flattening
-    "s3": 1,  # Xi–Trump diplomatic signal      ← CAUTION
-    "s4": 1,  # Iranian pragmatist signals       ← CAUTION
-    "s5": 0,  # Linde/APD force majeure lifted
-    "s6": 0,  # SPR drawdown slowing
-    "s7": 1,  # Media maximum consensus          ← CAUTION
-    "s8": 1,  # Trump resolution post            ← CAUTION
+    "s1": 0,,  # Shipping insurance declining
+    "s2": 0,,  # Futures curve flattening
+    "s3": 1,,  # Xi–Trump diplomatic signal      ← CAUTION
+    "s4": 1,,  # Iranian pragmatist signals       ← CAUTION
+    "s5": 0,,  # Linde/APD force majeure lifted
+    "s6": 0,,  # SPR drawdown slowing
+    "s7": 1,,  # Media maximum consensus          ← CAUTION
+    "s8": 1,,  # Trump resolution post            ← CAUTION
 }
 
 SIGNAL_NAMES = {
@@ -119,17 +119,8 @@ CALENDAR = [
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 2 Close · March 31, 2026 — April 1 Update",
+    "label": "Day 33 Close · April 02, 2026",
     "body": (
-        "S&P +2.91% · Dow +1,125pts · Nasdaq +3.83% — best day since May. "
-        "Catalyst: unconfirmed report Pezeshkian 'open to talks with guarantees.' "
-        '<b style="color:#a81828;">RTX underperformed badly at +0.7% vs market +2.9%.</b> '
-        "JETS +4.2% — "
-        '<b style="color:#b86800;">puts now close to $27 stop. Watch closely before April 6.</b> '
-        "GLD +3.4% surging with equities — unusual, embedded inflation signal. "
-        "<b>Physical reality unchanged:</b> Hormuz closed · Iran struck Kuwaiti tanker · "
-        "Polymarket 82% no-Hormuz by Apr 30. "
-        "<b>Critical:</b> Set all stops before Thursday close. "
-        "Good Friday Apr 4 = market closed. April 6 deadline is a long-weekend gap risk."
+        "Energy positions holding gains with RTX/NOC outperforming. Four exit signals at caution level amid diplomatic noise and crowding concerns. SPR drawdown continues with 120 days remaining. Hormuz closure maintains oil premium despite talk speculation."
     ),
 }
