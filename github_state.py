@@ -113,14 +113,12 @@ def patch_scenario_probabilities(config_text: str, probs: dict) -> str:
         if pct is None:
             continue
         frag_escaped = re.escape(fragment)
-        # Use string concat instead of rf'' to avoid \{ ambiguity
         pattern = r'({"pct":\s*")[\d]+%(".+?"name":\s*"' + frag_escaped + r'")'
-        replacement = r'\g<1>' + str(pct) + r'%\g<2>'
-        new_result = re.sub(pattern, replacement, result, flags=re.DOTALL)
+        new_pct = str(pct)
+        new_result = re.sub(pattern, lambda m: m.group(1) + new_pct + '%' + m.group(2), result, flags=re.DOTALL)
         if new_result == result:
             pattern2 = r'("name":\s*"' + frag_escaped + r'[^"]*".+?"pct":\s*")[\d]+%(")'
-            replacement2 = r'\g<1>' + str(pct) + r'%\g<2>'
-            new_result = re.sub(pattern2, replacement2, result, flags=re.DOTALL)
+            new_result = re.sub(pattern2, lambda m: m.group(1) + new_pct + '%' + m.group(2), result, flags=re.DOTALL)
         result = new_result
     return result
 
