@@ -72,9 +72,9 @@ SIGNAL_DESC = {
 
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 SCENARIOS = [
-    {"pct": "50%", "color": "#1a6bb0", "name": "B — Partial Resolution",
+    {"pct": "35%", "color": "#1a6bb0", "name": "B — Partial Resolution",
      "desc": "Convoy escorts resume. Brent $85–100. Prolonged elevated baseline.", "active": True},
-    {"pct": "35%", "color": "#a81828", "name": "C — Escalation",
+    {"pct": "50%", "color": "#a81828", "name": "C — Escalation",
      "desc": "82nd Airborne positioned. Kharg op imminent. Brent $120–200.", "active": False},
     {"pct": "15%", "color": "#126030", "name": "A — Resolution",
      "desc": "Pezeshkian signal unconfirmed. Iran hardliners dominant. Unlikely.", "active": False},
@@ -119,8 +119,8 @@ CALENDAR = [
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 33 Close · April 02, 2026",
+    "label": "Day 33 - April 02, 2026",
     "body": (
-        "Defense stocks holding gains while diplomatic noise creates caution signals. Energy positions remain profitable but consensus crowding and peace talk headlines suggest vulnerability. Exit threshold approaching with 4/8 signals at caution."
+        "Four exit signals at caution/triggered levels signal potential inflection point. RTX recovering strongly from entry, NOC solid gains. JETS put protection holding value as underlying consolidates. Diplomatic noise increasing but unconfirmed."
     ),
 }
