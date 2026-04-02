@@ -121,6 +121,6 @@ CALENDAR = [
 DAY_SUMMARY = {
     "label": "Day 33 Close · April 02, 2026",
     "body": (
-        "Energy positions holding gains with RTX/NOC outperforming. Four exit signals at caution level amid diplomatic noise and crowding concerns. SPR drawdown continues with 120 days remaining. Hormuz closure maintains oil premium despite talk speculation."
+        "Defense stocks holding gains while diplomatic noise creates caution signals. Energy positions remain profitable but consensus crowding and peace talk headlines suggest vulnerability. Exit threshold approaching with 4/8 signals at caution."
     ),
 }
