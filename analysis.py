@@ -162,17 +162,22 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
         for w in WAITING_LIST
     )
 
-    return f"""You are a geopolitical crisis trading analyst. Today is {today}.
-Produce a single JSON response combining a morning briefing AND a full intelligence brief.
+    # Format prices as plain strings to avoid JSON escape issues
+    def px(t): return str(round(prices[t], 2)) if t in prices else 'N/A'
 
-CURRENT LIVE PRICES:
-- RTX: ${prices.get('RTX', 'N/A')} (entry $185.84, stop $184) | Apr 28 earnings
-- NOC: ${prices.get('NOC', 'N/A')} (entry $678.35, stop $631) | Apr 21 earnings
-- LIN: ${prices.get('LIN', 'N/A')} (entry $495.85, stop $456) | Apr 30 earnings
-- JETS underlying: ${prices.get('JETS', 'N/A')} | put last: {jets_str} | paid $1.72 | stop JETS>$27
-- VTIP: ${prices.get('VTIP', 'N/A')} (entry $49.935, stop $47.50)
-- GLD: ${prices.get('GLD', 'N/A')} | VTV: ${prices.get('VTV', 'N/A')}
-- Dry powder: ~$16,500
+    return f"""You are a geopolitical crisis trading analyst. Today is {today}.
+    Produce a single JSON response combining a morning briefing AND a full intelligence brief.
+
+    IMPORTANT: In your JSON response, do NOT use backslashes except for standard JSON escapes (\", \\, \n, \t). Do not escape dollar signs. Write dollar amounts as plain text, e.g. "$185.84" not "\$185.84".
+
+    CURRENT LIVE PRICES:
+    - RTX: {px('RTX')} (entry 185.84, stop 184) | Apr 28 earnings
+    - NOC: {px('NOC')} (entry 678.35, stop 631) | Apr 21 earnings
+    - LIN: {px('LIN')} (entry 495.85, stop 456) | Apr 30 earnings
+    - JETS underlying: {px('JETS')} | put last: {jets_str} | paid 1.72 | stop JETS above 27
+    - VTIP: {px('VTIP')} (entry 49.935, stop 47.50)
+    - GLD: {px('GLD')} | VTV: {px('VTV')}
+    - Dry powder: approximately 16500
 
 {markets_str}
 
@@ -203,7 +208,7 @@ AI BRIEF FORMAT — for the ai_brief field, write exactly 5 sections, each under
 
 Respond ONLY with valid JSON, no preamble, no markdown fences:
 {{
-  "day_summary_label": "Day N · {today}",
+  "day_summary_label": "Day N - {today}",
   "day_summary_body": "plain text under 60 words",
   "signal_suggestions": {{
     "s1": {{"suggested": 0, "reason": "one sentence"}},

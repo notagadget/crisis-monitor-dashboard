@@ -143,8 +143,11 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 raw = msg.content[0].text.strip()
                 raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
                 raw = re.sub(r'```\s*$', '', raw, flags=re.MULTILINE)
-                raw = re.sub(r'\\u(?![0-9a-fA-F]{4})', r'\\\\u', raw)
-                st.session_state.sync_result = json.loads(raw.strip())
+                raw = raw.strip()
+                # Fix any backslash before a character that isn't a valid JSON escape
+                # Valid JSON escapes after \: " \ / b f n r t u
+                raw = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', raw)
+                st.session_state.sync_result = json.loads(raw)
                 sr = st.session_state.sync_result
                 # Pre-approve all signal suggestions
                 st.session_state.sync_approved_signals = {
