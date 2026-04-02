@@ -22,7 +22,7 @@ POSITIONS = {
 JETS_PUT = {
     "contracts":         10,
     "strike":            23,
-    "expiry_label":      "Jun 20 2026",
+    "expiry_label":      "Jun 18 2026",
     "expiry_date":       "2026-06-18",      # yfinance chain date
     "option_symbol":     "JETS260618P00023000",
     "premium_paid":      1.72,              # per share
@@ -75,9 +75,9 @@ SIGNAL_DESC = {
 
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 SCENARIOS = [
-    {"pct": "35%", "color": "#1a6bb0", "name": "B — Partial Resolution",
+    {"pct": "50%", "color": "#1a6bb0", "name": "B — Partial Resolution",
      "desc": "Convoy escorts resume. Brent $85–100. Prolonged elevated baseline.", "active": True},
-    {"pct": "50%", "color": "#a81828", "name": "C — Escalation",
+    {"pct": "35%", "color": "#a81828", "name": "C — Escalation",
      "desc": "82nd Airborne positioned. Kharg op imminent. Brent $120–200.", "active": False},
     {"pct": "15%", "color": "#126030", "name": "A — Resolution",
      "desc": "Pezeshkian signal unconfirmed. Iran hardliners dominant. Unlikely.", "active": False},
