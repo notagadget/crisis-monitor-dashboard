@@ -7,6 +7,7 @@ import base64
 import re
 import requests
 from datetime import date
+import json
 
 GITHUB_API = "https://api.github.com"
 
@@ -52,19 +53,20 @@ def commit_config(repo: str, token: str, new_content: str, sha: str,
 
 def patch_day_summary(config_text: str, label: str, body: str) -> str:
     """Replace DAY_SUMMARY dict in config.py with new label + body."""
-    # Escape any backslashes or quotes in body for safe embedding
-    body_escaped = body.replace("\\", "\\\\").replace('"', '\\"')
+    # Use a greedy dotall match anchored to the assignment — much more robust
     new_block = (
         'DAY_SUMMARY = {\n'
-        f'    "label": "{label}",\n'
+        f'    "label": {json.dumps(label)},\n'
         f'    "body": (\n'
-        f'        "{body_escaped}"\n'
+        f'        {json.dumps(body)}\n'
         '    ),\n'
         '}'
     )
-    # Replace from DAY_SUMMARY = { to the closing }
-    pattern = r'DAY_SUMMARY\s*=\s*\{[^}]*(?:\([^)]*\)[^}]*)?\}'
+    pattern = r'DAY_SUMMARY\s*=\s*\{.*?\n\}'
     result = re.sub(pattern, new_block, config_text, flags=re.DOTALL)
+    if result == config_text:
+        # Fallback: append if not found
+        result = config_text.rstrip() + '\n\n' + new_block + '\n'
     return result
 
 

@@ -248,7 +248,9 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 use_container_width=False,
             )
             if commit_clicked:
+
                 with st.spinner("Reading current config.py from GitHub..."):
+
                     try:
                         config_text, sha = get_config_sha(GITHUB_REPO, GITHUB_TOKEN)
 
@@ -265,6 +267,12 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                             if st.session_state.sync_approved_signals.get(sid):
                                 new_signals[sid] = d.get("suggested", new_signals[sid])
                         config_text = patch_signal_defaults(config_text, new_signals)
+
+                        try:
+                            compile(config_text, "config.py", "exec")
+                        except SyntaxError as e:
+                            st.error(f"Patched config.py has syntax error — commit aborted: {e}")
+                            st.stop()
 
                         commit_config(GITHUB_REPO, GITHUB_TOKEN, config_text, sha)
                         st.session_state.sync_committed = True
