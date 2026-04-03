@@ -138,7 +138,7 @@ def header_html() -> str:
 <div class="hdr">
   <div>
     <div class="brand">CRISIS TRADE MONITOR v0.6</div>
-    <div class="brand-sub">Hormuz · Helium · False Dawn &nbsp;|&nbsp; April 2, 2026</div>
+    <div class="brand-sub">Hormuz · Helium · False Dawn &nbsp;|&nbsp; April 3, 2026</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
     <span class="pill-live"><span class="pdot"></span>Live</span>
