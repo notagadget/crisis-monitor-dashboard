@@ -70,28 +70,27 @@ SIGNAL_DESC = {
     "s5": "Qatar FM active. No Ras Laffan LNG/helium resumption. Selective Hormuz opening excludes US-linked vessels.",
     "s6": "400M bbl SPR release running (~120 days). IEA warns Apr disruptions 2× worse than March.",
     "s7": "WTI/Brent inversion now mainstream financial news. Energy bull thesis crowded.",
-    "s8": "3rd deadline Apr 6 8pm ET. Trump vowed strikes but gave no Hormuz plan. Serial extension risk: if no action → TRIGGERED.",
-}
+    "s8": "Trump set Tue 8pm ET deadline; named power plants + bridges. Not a soft extension.",}
 
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 # Ordered most-likely to least-likely
 SCENARIOS = [
-    {"pct": "55%", "color": "#1a6bb0", "name": "B — Managed Partial Limbo",
-     "desc": "Iran toll regime solidifies. UK/allied escorts partial. Brent $95–115 sustained. JETS thesis weakens.", "active": True},
-    {"pct": "25%", "color": "#a81828", "name": "C — Escalation",
-     "desc": "Trump executes Apr 6 Kharg oil infrastructure threat. Brent $130–180. Thesis fully on.", "active": False},
-    {"pct": "20%", "color": "#126030", "name": "A — Full Resolution",
-     "desc": "Iran sovereignty demand + Mojtaba Khamenei blocking. Hardest path. Even 'deal' likely means toll regime.", "active": False},
+    {"pct": "45%", "color": "#a81828", "name": "C — Escalation",
+     "desc": "Trump named power plants + bridges for Tue. F-15E downed, A-10 hit. Polymarket 96% forces enter by Apr 30.", "active": True},
+    {"pct": "40%", "color": "#1a6bb0", "name": "B — Partial Resolution",
+     "desc": "Toll regime functioning. 53 transits last week. Oman-Iran talks underway.", "active": False},
+    {"pct": "15%", "color": "#126030", "name": "A — Resolution",
+     "desc": "Iran demanding reparations + toll fees before reopening. Hardliners dominant.", "active": False},
 ]
 
-DEADLINE_ISO = "2026-04-06T20:00:00"   # ET — Iran ultimatum
+DEADLINE_ISO = "2026-04-08T20:00:00"   # ET — Iran ultimatum
 DEADLINE_TZ  = "America/Detroit"
 
 # ── WAITING LIST ──────────────────────────────────────────────────────────────
 # status options: ready | event | watching | patience
 WAITING_LIST = [
-    {"ticker": "XOM / CVX", "status": "watching",  "when": "Post Apr 6",
-     "cond": "WTI $111 — don't chase. Wait for post-deadline clarity. Entry range $100–103 on pullback.",
+    {"ticker": "XOM / CVX", "status": "event", "when": "Post-Tue Strike",
+     "cond": "If infra strike confirmed Tue: enter at Mon open. WTI already $113+, don't chase before.",
      "alloc": "$3,000"},
     {"ticker": "APD",       "status": "event",    "when": "Near Ready",
      "cond": "Helium containers past storage window. Selective Hormuz opening does NOT reopen Ras Laffan for LNG/helium.",
@@ -113,13 +112,13 @@ WAITING_LIST = [
 # ── CALENDAR ──────────────────────────────────────────────────────────────────
 CALENDAR = [
     {"date": "Apr 4",  "event": "Good Friday — market closed · UNSC Hormuz force vote", "crit": True},
-    {"date": "Apr 6",  "event": "Iran ultimatum 8pm ET · set stops Thu close",           "crit": True},
+    {"date": "Apr 6/8", "event": "Trump Tue 8pm ET deadline — power plants + bridges", "crit": True},
     {"date": "Apr 7",  "event": "EIA Short-Term Energy Outlook",                         "crit": False},
     {"date": "Apr 10", "event": "CPI report — first post-war inflation read",            "crit": False},
     {"date": "Apr 21", "event": "NOC earnings",                                          "crit": False},
     {"date": "Apr 28", "event": "RTX earnings (before open)",                            "crit": False},
     {"date": "Apr 30", "event": "LIN earnings",                                          "crit": False},
-    {"date": "Jun 20", "event": "JETS puts expiry",                                      "crit": False},
+    {"date": "Jun 18", "event": "JETS puts expiry",                                      "crit": False},
 ]
 
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
