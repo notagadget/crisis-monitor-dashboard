@@ -5,11 +5,13 @@ All functions return plain Python types; no Streamlit calls here.
 
 from datetime import datetime
 import pytz
+import streamlit as st
 import yfinance as yf
 
 from config import PRICE_TICKERS, JETS_PUT, DEADLINE_ISO, DEADLINE_TZ
 
 
+@st.cache_data(ttl=300)
 def fetch_prices() -> dict[str, float]:
     """
     Fetch latest prices for all tracked tickers via yfinance.
@@ -22,6 +24,7 @@ def fetch_prices() -> dict[str, float]:
         return {}
 
 
+@st.cache_data(ttl=300)
 def fetch_option_price() -> float | None:
     """
     Fetch the last traded price of the JETS put from config.JETS_PUT.

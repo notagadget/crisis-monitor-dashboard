@@ -5,10 +5,12 @@ All prices from last_price_dollars (0.0–1.0 scale → multiply by 100 for %).
 
 import json
 import requests
+import streamlit as st
 
 KALSHI_API = "https://api.elections.kalshi.com/trade-api/v2"
 
 
+@st.cache_data(ttl=600)
 def fetch_kalshi_markets() -> dict:
     return {
         "wti_range": _fetch_wti_markets(),
@@ -17,6 +19,7 @@ def fetch_kalshi_markets() -> dict:
     }
 
 
+@st.cache_data(ttl=600)
 def fetch_polymarket_odds() -> dict:
     return {"hormuz_apr": _fetch_polymarket_keyword("hormuz")}
 

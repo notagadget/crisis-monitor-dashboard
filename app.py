@@ -78,6 +78,12 @@ legacy              = legacy_totals(prices)
 score               = score_signals(st.session_state.signals)
 cap                 = capital_summary(prices, option_price, thesis)
 
+# ── LIVE PREDICTION MARKETS ──────────────────────────────────────────────────
+kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else {}
+poly_data   = fetch_polymarket_odds()
+markets_str = format_markets_for_prompt(kalshi_data, poly_data)
+st.session_state.markets_str = markets_str
+
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown(header_html(), unsafe_allow_html=True)
 st.markdown(day_summary_html(), unsafe_allow_html=True)
