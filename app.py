@@ -26,6 +26,7 @@ from components import (
     equity_card_html, jets_card_html, cash_card_html,
     legacy_card_html, thesis_bucket_html, legacy_bucket_html,
     wait_card_html, calendar_html, score_box_html,
+    prediction_markets_html,
 )
 from kalshi import fetch_kalshi_markets, fetch_polymarket_odds, format_markets_for_prompt
 from github_state import (
@@ -102,6 +103,7 @@ st.markdown(
     f'</div>',
     unsafe_allow_html=True,
 )
+st.markdown(prediction_markets_html(kalshi_data, poly_data), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MORNING SYNC PANEL
