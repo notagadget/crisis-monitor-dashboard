@@ -4,6 +4,7 @@ All functions return plain Python types; no Streamlit calls here.
 """
 
 from datetime import datetime
+import math
 import pytz
 import streamlit as st
 import yfinance as yf
@@ -19,7 +20,12 @@ def fetch_prices() -> dict[str, float]:
     """
     try:
         data = yf.download(PRICE_TICKERS, period="1d", interval="1m", progress=False)
-        return {t: float(data["Close"][t].iloc[-1]) for t in PRICE_TICKERS}
+        out = {}
+        for t in PRICE_TICKERS:
+            v = float(data["Close"][t].iloc[-1])
+            if not math.isnan(v):
+                out[t] = v
+        return out
     except Exception:
         return {}
 
@@ -38,9 +44,12 @@ def fetch_option_price() -> dict:
         row = puts[puts["strike"] == float(JETS_PUT["strike"])]
         if not row.empty:
             r = row.iloc[0]
-            last = float(r.get("lastPrice", 0) or 0)
-            bid = float(r.get("bid", 0) or 0)
-            ask = float(r.get("ask", 0) or 0)
+            def _safe(key):
+                v = float(r.get(key, 0) or 0)
+                return v if not math.isnan(v) else 0.0
+            last = _safe("lastPrice")
+            bid = _safe("bid")
+            ask = _safe("ask")
             if last > 0:
                 return {"price": last, "source": "last"}
             if bid > 0 and ask > 0:
