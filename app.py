@@ -73,6 +73,10 @@ if "markets_str" not in st.session_state:
 # ── LIVE DATA ─────────────────────────────────────────────────────────────────
 prices              = fetch_prices()
 _opt_result         = fetch_option_price()
+if not isinstance(_opt_result, dict):
+    # Stale cache from prior code version returned float|None — clear and refetch
+    fetch_option_price.clear()
+    _opt_result = fetch_option_price()
 option_price        = _opt_result["price"]
 option_source       = _opt_result["source"]
 if option_price is None:
