@@ -1,7 +1,11 @@
 """
 kalshi.py — Kalshi + Polymarket prediction market data.
 Dynamically discovers high-volume, crisis-relevant markets.
-All prices from last_price_dollars (0.0–1.0 scale → multiply by 100 for %).
+
+Kalshi:  Uses /events endpoint with category filtering (Economics, Politics,
+         Financials, World). Volume field is volume_fp. Prices in last_price_dollars.
+Polymarket: Uses /events endpoint sorted by volume, filters out sports/entertainment
+         by tag slugs client-side.
 """
 
 import json
@@ -9,23 +13,26 @@ import requests
 import streamlit as st
 
 KALSHI_API = "https://api.elections.kalshi.com/trade-api/v2"
+POLYMARKET_API = "https://gamma-api.polymarket.com"
 
-CRISIS_KEYWORDS = [
-    "oil", "wti", "crude", "opec",
-    "recession", "gdp", "unemployment", "inflation", "cpi", "fed", "rate",
-    "iran", "hormuz", "sanctions", "tariff", "trade war", "trade deal",
-    "war", "conflict", "nato", "china", "taiwan", "russia", "ukraine",
-    "default", "debt ceiling", "treasury", "market", "crash", "s&p", "dow",
-    "military", "nuclear", "missile",
-]
+KALSHI_CATEGORIES = {"Economics", "Politics", "Financials", "World"}
+
+# Polymarket tag slugs to exclude (sports, entertainment, pop culture)
+POLY_EXCLUDE_TAGS = {
+    "sports", "soccer", "football", "nba", "nfl", "mlb", "nhl", "tennis",
+    "cricket", "EPL", "entertainment", "music", "movies", "pop-culture",
+    "fifa-world-cup", "2026-fifa-world-cup", "esports", "gaming",
+    "mma", "boxing", "formula-1", "f1", "baseball", "hockey", "golf",
+    "rugby", "motorsport",
+}
+
+# Events with more than this many sub-markets are nominee pools (e.g.
+# "Democratic Presidential Nominee 2028" with 128 candidates) — skip them
+# since individual sub-markets are meaningless.
+MAX_EVENT_MARKETS = 10
 
 MAX_KALSHI = 4
-MAX_POLYMARKET = 3
-
-
-def _is_crisis_relevant(text: str) -> bool:
-    low = text.lower()
-    return any(kw in low for kw in CRISIS_KEYWORDS)
+MAX_POLYMARKET = 4
 
 
 def _extract_price(market: dict) -> float:
@@ -35,103 +42,102 @@ def _extract_price(market: dict) -> float:
 
 @st.cache_data(ttl=600)
 def fetch_kalshi_markets() -> list:
-    """Fetch high-volume crisis-relevant markets from Kalshi."""
+    """Fetch crisis-relevant markets from Kalshi via events endpoint."""
     try:
         r = requests.get(
-            f"{KALSHI_API}/markets",
-            params={"status": "open", "limit": 200},
+            f"{KALSHI_API}/events",
+            params={"status": "open", "with_nested_markets": "true", "limit": 100},
             timeout=10,
         )
         r.raise_for_status()
-        markets = r.json().get("markets", [])
-        if not markets:
-            return [{"source": "kalshi", "error": "no open markets returned"}]
-
-        scored = []
-        for m in markets:
-            title = m.get("title", "")
-            volume = int(m.get("volume", 0) or 0)
-            relevant = _is_crisis_relevant(title)
-            scored.append((m, volume, relevant))
-
-        # crisis-relevant markets sorted by volume
-        relevant = [(m, v) for m, v, rel in scored if rel and v > 0]
-        relevant.sort(key=lambda x: x[1], reverse=True)
-
-        # if fewer than 2 relevant, pad with top-volume markets
-        if len(relevant) < 2:
-            all_by_vol = [(m, v) for m, v, _ in scored if v > 0]
-            all_by_vol.sort(key=lambda x: x[1], reverse=True)
-            existing_tickers = {m.get("ticker") for m, _ in relevant}
-            for m, v in all_by_vol:
-                if m.get("ticker") not in existing_tickers:
-                    relevant.append((m, v))
-                    existing_tickers.add(m.get("ticker"))
-                if len(relevant) >= MAX_KALSHI:
-                    break
+        events = r.json().get("events", [])
+        if not events:
+            return [{"source": "kalshi", "error": "no open events returned"}]
 
         results = []
-        for m, vol in relevant[:MAX_KALSHI]:
-            price = _extract_price(m)
+        for evt in events:
+            if evt.get("category") not in KALSHI_CATEGORIES:
+                continue
+            markets = evt.get("markets", [])
+            if not markets:
+                continue
+            # pick the market with the highest volume in this event
+            best = max(markets, key=lambda m: float(m.get("volume_fp", 0) or 0))
+            vol = float(best.get("volume_fp", 0) or 0)
+            price = _extract_price(best)
             results.append({
                 "source":  "kalshi",
-                "ticker":  m.get("ticker", ""),
-                "title":   m.get("title", ""),
+                "ticker":  best.get("ticker", ""),
+                "title":   best.get("title", evt.get("title", "")),
                 "yes_pct": round(price * 100, 1),
                 "volume":  vol,
                 "error":   None,
             })
-        return results if results else [{"source": "kalshi", "error": "no markets with volume"}]
+
+        # sort by volume descending
+        results.sort(key=lambda x: x["volume"], reverse=True)
+        return results[:MAX_KALSHI] if results else [{"source": "kalshi", "error": "no relevant markets"}]
     except Exception as e:
         return [{"source": "kalshi", "error": str(e)[:80]}]
 
 
 @st.cache_data(ttl=600)
 def fetch_polymarket_odds() -> list:
-    """Fetch high-volume crisis-relevant markets from Polymarket."""
+    """Fetch high-volume crisis-relevant events from Polymarket."""
     try:
         r = requests.get(
-            "https://gamma-api.polymarket.com/markets",
-            params={"active": "true", "limit": 100, "order": "volume", "ascending": "false"},
+            f"{POLYMARKET_API}/events",
+            params={
+                "active": "true", "closed": "false",
+                "limit": 50, "order": "volume", "ascending": "false",
+            },
             timeout=10,
         )
         r.raise_for_status()
-        data = r.json()
-        if not data:
-            return [{"source": "polymarket", "error": "no active markets returned"}]
-
-        relevant = []
-        fallback = []
-        for item in data:
-            question = item.get("question", "")
-            volume = float(item.get("volume", 0) or 0)
-            if _is_crisis_relevant(question) and volume > 0:
-                relevant.append((item, volume))
-            elif volume > 0 and len(fallback) < MAX_POLYMARKET:
-                fallback.append((item, volume))
-
-        # pad with fallback if too few relevant
-        if len(relevant) < 2:
-            existing_qs = {item.get("question") for item, _ in relevant}
-            for item, vol in fallback:
-                if item.get("question") not in existing_qs:
-                    relevant.append((item, vol))
-                if len(relevant) >= MAX_POLYMARKET:
-                    break
-
-        relevant.sort(key=lambda x: x[1], reverse=True)
+        events = r.json()
+        if not events:
+            return [{"source": "polymarket", "error": "no active events returned"}]
 
         results = []
-        for item, vol in relevant[:MAX_POLYMARKET]:
-            prices = json.loads(item.get("outcomePrices", '["0","1"]'))
+        for evt in events:
+            # filter out sports/entertainment by tag slugs
+            tags = evt.get("tags") or []
+            if isinstance(tags, list) and tags and isinstance(tags[0], dict):
+                tag_slugs = {t.get("slug", "") for t in tags}
+            else:
+                tag_slugs = set()
+            if tag_slugs & POLY_EXCLUDE_TAGS:
+                continue
+
+            vol = float(evt.get("volume", 0) or 0)
+            markets = evt.get("markets") or []
+            open_markets = [m for m in markets if not m.get("closed") and m.get("outcomePrices")]
+            if not open_markets:
+                continue
+            # skip nominee pools — events with many sub-markets where
+            # individual questions are meaningless ("Will Person X win...")
+            if len(open_markets) > MAX_EVENT_MARKETS:
+                continue
+            # pick the market with the highest YES price (most likely outcome)
+            def _yes_price(m):
+                try:
+                    return float(json.loads(m.get("outcomePrices", '["0"]'))[0])
+                except (json.JSONDecodeError, IndexError, ValueError):
+                    return 0
+            best = max(open_markets, key=_yes_price)
+
+            prices = json.loads(best.get("outcomePrices", '["0","1"]'))
             results.append({
                 "source":   "polymarket",
-                "title":    item.get("question", ""),
+                "title":    best.get("question", evt.get("title", "")),
                 "yes_pct":  round(float(prices[0]) * 100, 1),
                 "volume":   vol,
                 "error":    None,
             })
-        return results if results else [{"source": "polymarket", "error": "no markets with volume"}]
+
+        # already sorted by volume from API, but re-sort after filtering
+        results.sort(key=lambda x: x["volume"], reverse=True)
+        return results[:MAX_POLYMARKET] if results else [{"source": "polymarket", "error": "no relevant events"}]
     except Exception as e:
         return [{"source": "polymarket", "error": str(e)[:80]}]
 

@@ -344,18 +344,19 @@ def prediction_markets_html(kalshi: list, poly: list) -> str:
             '<div style="color:var(--text3);font-size:10px;">Markets unavailable</div></div>'
         )
     else:
-        for m in all_markets[:6]:
+        for m in all_markets[:8]:
             source = m.get("source", "").upper()
             src_label = "K" if source == "KALSHI" else "PM"
             title = m.get("title", "")
             short_title = (title[:45] + "...") if len(title) > 48 else title
             pct = m.get("yes_pct", "?")
             items.append(
-                f'<div style="flex:1;min-width:120px;max-width:200px;">'
-                f'<div style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;'
-                f'color:var(--text3);margin-bottom:3px;">'
+                f'<div style="flex:1;min-width:100px;max-width:180px;">'
+                f'<div style="font-size:7px;letter-spacing:.3px;'
+                f'color:var(--text3);margin-bottom:3px;overflow:hidden;'
+                f'text-overflow:ellipsis;white-space:nowrap;" title="{title}">'
                 f'<span style="background:var(--border);border-radius:2px;padding:0 3px;'
-                f'margin-right:4px;font-size:7px;">{src_label}</span>'
+                f'margin-right:3px;font-size:7px;">{src_label}</span>'
                 f'{short_title}</div>'
                 f'<span style="font-size:16px;font-weight:700;color:var(--text);">'
                 f'{pct}%</span>'
