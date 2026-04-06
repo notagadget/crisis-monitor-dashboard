@@ -19,6 +19,7 @@ from data import fetch_prices, fetch_option_price, countdown_to_deadline
 from analysis import (
     calc_pnl, calc_option_pnl, thesis_totals, legacy_totals,
     score_signals, build_prompt, build_sync_prompt, render_ai_html,
+    capital_summary,
 )
 from components import (
     CSS, header_html, day_summary_html, scenario_bar_html,
@@ -29,8 +30,11 @@ from components import (
 from kalshi import fetch_kalshi_markets, fetch_polymarket_odds, format_markets_for_prompt
 from github_state import (
     get_config_sha, commit_config,
-    patch_day_summary, patch_signal_defaults,
+    patch_day_summary, patch_signal_defaults, patch_last_updated
 )
+
+#from analysis import _sign
+_sign = lambda v: "+" if v >= 0 else ""
 
 # ── PAGE CONFIG ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -66,17 +70,32 @@ if "markets_str" not in st.session_state:
     st.session_state.markets_str = ""
 
 # ── LIVE DATA ─────────────────────────────────────────────────────────────────
-prices       = fetch_prices()
-option_price = fetch_option_price()
-opt_pnl, opt_pct = calc_option_pnl(option_price)
-thesis       = thesis_totals(prices, opt_pnl)
-legacy       = legacy_totals(prices)
-score        = score_signals(st.session_state.signals)
+prices              = fetch_prices()
+option_price        = fetch_option_price()
+opt_pnl, opt_pct    = calc_option_pnl(option_price)
+thesis              = thesis_totals(prices, opt_pnl)
+legacy              = legacy_totals(prices)
+score               = score_signals(st.session_state.signals)
+cap                 = capital_summary(prices, option_price, thesis)
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown(header_html(), unsafe_allow_html=True)
 st.markdown(day_summary_html(), unsafe_allow_html=True)
 st.markdown(scenario_bar_html(countdown_to_deadline()), unsafe_allow_html=True)
+st.markdown(
+    f'<div style="background:#edf3fc;border:1px solid #2c68c0;border-radius:4px;'
+    f'padding:8px 20px;margin-bottom:8px;display:flex;gap:32px;align-items:center;">'
+    f'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#0b4580;">'
+    f'DEPLOYED <b>${cap["deployed"]:,.0f}</b></span>'
+    f'<span style="font-family:JetBrains Mono,monospace;font-size:10px;'
+    f'color:{"#126030" if cap["pnl"] >= 0 else "#a81828"};">'
+    f'THESIS P&L <b>{_sign(cap["pnl"])}${cap["pnl"]:,.0f}</b> '
+    f'({_sign(cap["pct"])}{cap["pct"]:.1f}%)</span>'
+    f'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:#5a6880;">'
+    f'DRY POWDER <b>${DRY_POWDER:,}</b></span>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MORNING SYNC PANEL
@@ -297,6 +316,8 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                             sr.get("day_summary_label", ""),
                             sr.get("day_summary_body", ""),
                         )
+
+                        config_text = patch_last_updated(config_text, datetime.date.today().strftime("%B %-d, %Y"))
 
                         new_signals = dict(st.session_state.signals)
                         for sid, d in sig_sugg.items():

@@ -5,7 +5,8 @@ No data fetching or business logic here.
 """
 
 from config import (
-    APP_VERSION, JETS_PUT, SCENARIOS, WAITING_LIST, CALENDAR, DAY_SUMMARY, DRY_POWDER, POSITIONS
+    APP_VERSION, JETS_PUT, SCENARIOS, WAITING_LIST, CALENDAR, DAY_SUMMARY, DRY_POWDER, POSITIONS,
+    LAST_UPDATED,
 )
 
 
@@ -134,11 +135,11 @@ def _sign(val: float) -> str:
 # ── SECTION BUILDERS ──────────────────────────────────────────────────────────
 
 def header_html() -> str:
-    return """
+    return f"""
 <div class="hdr">
   <div>
-    <div class="brand">CRISIS TRADE MONITOR v0.6</div>
-    <div class="brand-sub">Hormuz · Helium · False Dawn &nbsp;|&nbsp; April 3, 2026</div>
+    <div class="brand">CRISIS TRADE MONITOR {APP_VERSION}</div>
+    <div class="brand-sub">Hormuz · Helium · False Dawn &nbsp;|&nbsp; {LAST_UPDATED}</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
     <span class="pill-live"><span class="pdot"></span>Live</span>
@@ -244,6 +245,7 @@ def legacy_card_html(ticker: str, price: float, pnl: float) -> str:
     p = POSITIONS[ticker]
     cost = p["entry"] * p["shares"]
     pct = (pnl / cost) * 100
+    bg, fg = _pnl_style(pnl)
     return (
         f'<div class="pos-card hold">'
         f'<div class="pos-ticker">{ticker}</div>'
@@ -251,8 +253,8 @@ def legacy_card_html(ticker: str, price: float, pnl: float) -> str:
         f'<div class="pos-entry">Entry ${p["entry"]:.2f} · Basis ${cost:,.0f}</div>'
         f'<div class="pos-price">${price:.2f}</div>'
         f'<div style="margin-top:4px;font-family:JetBrains Mono,monospace;font-size:11px;'
-        f'padding:2px 8px;border-radius:3px;display:inline-block;background:#ebf7f0;color:#126030;">'
-        f'+${pnl:,.0f} &nbsp;+{pct:.0f}%</div><br>'
+        f'padding:2px 8px;border-radius:3px;display:inline-block;background:{bg};color:{fg};">'
+        f'{_sign(pnl)}${pnl:,.0f} &nbsp;{_sign(pct)}{pct:.1f}%</div><br>'
         f'<span class="stop-badge hold">Hold · not thesis capital</span>'
         f'</div>'
     )
@@ -286,16 +288,17 @@ def thesis_bucket_html(equity_rows: dict, jets_pnl: float | None, total: float) 
 def legacy_bucket_html(rows: dict, total: float) -> str:
     rows_html = "".join(
         f'<div class="bucket-row"><span>{t} {POSITIONS[t]["shares"]}sh</span>'
-        f'<span style="color:#126030;">+${v:,.0f}</span></div>'
+        f'<span style="color:{"#126030" if v >= 0 else "#a81828"};">{_sign(v)}${v:,.0f}</span></div>'
         for t, v in rows.items()
     )
+    total_color = "#126030" if total >= 0 else "#a81828"
     return (
         f'<div class="bucket-legacy">'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:1px;'
         f'text-transform:uppercase;color:#5a6880;margin-bottom:8px;">Legacy P&L — Pre-existing Holds</div>'
         f'{rows_html}'
         f'<div class="bucket-total" style="border-top:1px solid #d0d5e0;color:#0e1520;">'
-        f'<span>Legacy Total</span><span style="color:#5a6880;">+${total:,.0f}</span></div>'
+        f'<span>Legacy Total</span><span style="color:{total_color};">{_sign(total)}${total:,.0f}</span></div>'
         f'<div style="font-family:IBM Plex Sans,sans-serif;font-size:10px;color:#5a6880;'
         f'margin-top:6px;line-height:1.5;">'
         f'Independent of the Hormuz thesis. Do not use to offset thesis losses.</div>'

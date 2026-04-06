@@ -50,6 +50,24 @@ def legacy_totals(prices: dict) -> dict:
             for t, p in POSITIONS.items() if not p["thesis"]}
     return {"rows": rows, "total": sum(rows.values())}
 
+def capital_summary(prices: dict, jets_option_price: float | None, thesis: dict) -> dict:
+    """
+    Returns total capital deployed across thesis positions and overall % P&L.
+    Excludes legacy holds and dry powder.
+    """
+    equity_cost = sum(
+        POSITIONS[t]["entry"] * POSITIONS[t]["shares"]
+        for t in POSITIONS if POSITIONS[t]["thesis"]
+    )
+    jets_cost = JETS_PUT["premium_paid"] * JETS_PUT["contracts"] * 100
+    total_deployed = equity_cost + jets_cost
+    total_pnl = thesis["total"]
+    pct = (total_pnl / total_deployed) * 100 if total_deployed else 0
+    return {
+        "deployed": total_deployed,
+        "pnl": total_pnl,
+        "pct": pct,
+    }
 
 # ── SIGNALS ───────────────────────────────────────────────────────────────────
 

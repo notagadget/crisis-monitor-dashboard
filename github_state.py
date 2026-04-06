@@ -50,6 +50,13 @@ def commit_config(repo: str, token: str, new_content: str, sha: str,
 
 # ── PATCH HELPERS ─────────────────────────────────────────────────────────────
 
+def patch_last_updated(config_text: str, date_str: str) -> str:
+    return re.sub(
+        r'(LAST_UPDATED\s*=\s*")[^"]*(")',
+        rf'\g<1>{date_str}\g<2>',
+        config_text,
+    )
+
 def patch_day_summary(config_text: str, label: str, body: str) -> str:
     """Replace DAY_SUMMARY dict in config.py with new label + body."""
     new_block = (
