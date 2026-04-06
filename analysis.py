@@ -4,8 +4,8 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 """
 
 import re
-from datetime import date
-from config import POSITIONS, JETS_PUT, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST
+from datetime import date, datetime
+from config import POSITIONS, JETS_PUT, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
@@ -98,7 +98,8 @@ def score_signals(signals: dict) -> dict:
 # ── DAILY ANALYSIS PROMPT ─────────────────────────────────────────────────────
 
 def build_prompt(prices: dict, jets_option_price: float | None,
-                 signals: dict, markets_str: str = "") -> str:
+                 signals: dict, markets_str: str = "",
+                 jets_option_source: str | None = None) -> str:
     """
     Build the Claude analysis prompt from live data.
     markets_str: formatted prediction market string from kalshi.format_markets_for_prompt()
@@ -110,7 +111,8 @@ def build_prompt(prices: dict, jets_option_price: float | None,
     )
 
     jets_underlying = prices.get("JETS", "N/A")
-    jets_opt_str = f"${jets_option_price:.2f}" if jets_option_price else "N/A (market closed)"
+    _src = f" ({jets_option_source})" if jets_option_source and jets_option_source != "last" else ""
+    jets_opt_str = f"${jets_option_price:.2f}{_src}" if jets_option_price else "N/A (market closed)"
 
     wait_str = " · ".join(
         f"{w['ticker']} ({w['when'].lower()})" for w in WAITING_LIST
@@ -124,7 +126,7 @@ THESIS POSITIONS (live prices):
 - RTX:  ${prices.get('RTX', 'N/A')} (entry $185.84, stop $184) | Apr 28 earnings
 - NOC:  ${prices.get('NOC', 'N/A')} (entry $678.35, stop $631) | Apr 21 earnings
 - LIN:  ${prices.get('LIN', 'N/A')} (entry $495.85, stop $456) | Apr 30 earnings
-- JETS $23 Jun20 puts 10×: underlying ${jets_underlying} | put {jets_opt_str} | paid $1.72 | stop JETS>$27
+- JETS ${JETS_PUT["strike"]} {datetime.strptime(JETS_PUT["expiry_date"], "%Y-%m-%d").strftime("%b%-d")} puts {JETS_PUT["contracts"]}×: underlying ${jets_underlying} | put {jets_opt_str} | paid ${JETS_PUT["premium_paid"]} | stop JETS>${JETS_PUT["stop_underlying"]}
 - VTIP: ${prices.get('VTIP', 'N/A')} (entry $49.935, stop $47.50)
 - Dry powder: ~$16,500
 
@@ -137,20 +139,21 @@ EXIT SIGNAL STATUS:
 
 WAITING LIST: {wait_str}
 
-CRITICAL DATES: Good Friday Apr 4 (closed) · Iran ultimatum Apr 8 8pm ET
+CRITICAL DATES: Iran ultimatum {datetime.fromisoformat(DEADLINE_ISO).strftime("%b %-d")} 8pm ET
 
 Respond with exactly 5 sections, under 70 words each:
 1. SITUATION UPDATE
 2. SIGNAL ASSESSMENT
 3. POSITION ALERTS — focus on JETS stop proximity and RTX recovery
 4. WAITING LIST — which entries are ready to execute now
-5. KEY RISK before April 6"""
+5. KEY RISK before {datetime.fromisoformat(DEADLINE_ISO).strftime("%B %-d")}"""
 
 
 # ── MORNING SYNC PROMPT (MERGED) ──────────────────────────────────────────────
 
 def build_sync_prompt(prices: dict, jets_option_price: float | None,
-                      current_signals: dict, markets_str: str) -> str:
+                      current_signals: dict, markets_str: str,
+                      jets_option_source: str | None = None) -> str:
     """
     Combined morning sync prompt: Claude returns structured JSON with
     config patches AND a full intelligence brief + updated scenario probabilities.
@@ -166,7 +169,8 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
       - key_insight: str (1 sentence)
     """
     today = date.today().strftime("%B %d, %Y")
-    jets_str = f"${jets_option_price:.2f}" if jets_option_price else "market closed"
+    _src = f" ({jets_option_source})" if jets_option_source and jets_option_source != "last" else ""
+    jets_str = f"${jets_option_price:.2f}{_src}" if jets_option_price else "market closed"
 
     sig_ctx = "\n".join(
         f'  "{sid}": {{"current": {current_signals[sid]}, '
@@ -222,7 +226,7 @@ AI BRIEF FORMAT — for the ai_brief field, write exactly 5 sections, each under
 2. SIGNAL ASSESSMENT
 3. POSITION ALERTS — focus on JETS stop proximity and RTX recovery
 4. WAITING LIST — which entries are ready to execute now
-5. KEY RISK before April 6
+5. KEY RISK before {datetime.fromisoformat(DEADLINE_ISO).strftime("%B %-d")}
 
 Respond ONLY with valid JSON, no preamble, no markdown fences:
 {{

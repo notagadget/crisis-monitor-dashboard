@@ -25,10 +25,11 @@ def fetch_prices() -> dict[str, float]:
 
 
 @st.cache_data(ttl=300)
-def fetch_option_price() -> float | None:
+def fetch_option_price() -> dict:
     """
-    Fetch the last traded price of the JETS put from config.JETS_PUT.
-    Returns None on any error so callers can display 'N/A' gracefully.
+    Fetch the JETS put price from config.JETS_PUT.
+    Returns {"price": float|None, "source": "last"|"mid"|"bid"|None}.
+    Tries lastPrice first, then bid/ask midpoint, then bid alone.
     """
     try:
         tk = yf.Ticker(JETS_PUT["underlying"])
@@ -36,10 +37,19 @@ def fetch_option_price() -> float | None:
         puts = chain.puts
         row = puts[puts["strike"] == float(JETS_PUT["strike"])]
         if not row.empty:
-            return float(row["lastPrice"].iloc[0])
+            r = row.iloc[0]
+            last = float(r.get("lastPrice", 0) or 0)
+            bid = float(r.get("bid", 0) or 0)
+            ask = float(r.get("ask", 0) or 0)
+            if last > 0:
+                return {"price": last, "source": "last"}
+            if bid > 0 and ask > 0:
+                return {"price": round((bid + ask) / 2, 4), "source": "mid"}
+            if bid > 0:
+                return {"price": bid, "source": "bid"}
     except Exception:
         pass
-    return None
+    return {"price": None, "source": None}
 
 
 def countdown_to_deadline() -> str:

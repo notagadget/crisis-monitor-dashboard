@@ -72,7 +72,11 @@ if "markets_str" not in st.session_state:
 
 # ── LIVE DATA ─────────────────────────────────────────────────────────────────
 prices              = fetch_prices()
-option_price        = fetch_option_price()
+_opt_result         = fetch_option_price()
+option_price        = _opt_result["price"]
+option_source       = _opt_result["source"]
+if option_price is None:
+    fetch_option_price.clear()
 opt_pnl, opt_pct    = calc_option_pnl(option_price)
 thesis              = thesis_totals(prices, opt_pnl)
 legacy              = legacy_totals(prices)
@@ -82,6 +86,10 @@ cap                 = capital_summary(prices, option_price, thesis)
 # ── LIVE PREDICTION MARKETS ──────────────────────────────────────────────────
 kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else []
 poly_data   = fetch_polymarket_odds()
+if any(m.get("error") for m in kalshi_data):
+    fetch_kalshi_markets.clear()
+if any(m.get("error") for m in poly_data):
+    fetch_polymarket_odds.clear()
 markets_str = format_markets_for_prompt(kalshi_data, poly_data)
 st.session_state.markets_str = markets_str
 
@@ -140,8 +148,14 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         st.session_state.sync_committed = False
 
         with st.spinner("Fetching prediction markets..."):
+            fetch_kalshi_markets.clear()
+            fetch_polymarket_odds.clear()
             kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else []
             poly_data   = fetch_polymarket_odds()
+            if any(m.get("error") for m in kalshi_data):
+                fetch_kalshi_markets.clear()
+            if any(m.get("error") for m in poly_data):
+                fetch_polymarket_odds.clear()
             markets_str = format_markets_for_prompt(kalshi_data, poly_data)
             st.session_state.markets_str = markets_str
 
@@ -162,6 +176,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                             prices, option_price,
                             st.session_state.signals,
                             markets_str,
+                            jets_option_source=option_source,
                         ),
                     }],
                 )
@@ -391,6 +406,7 @@ with col_ai:
                                 prices, option_price,
                                 st.session_state.signals,
                                 st.session_state.markets_str,
+                                jets_option_source=option_source,
                             ),
                         }],
                     )
@@ -446,7 +462,7 @@ for i, ticker in enumerate(thesis_tickers[:4]):
 
 with pcols[4]:
     jets_price = prices.get("JETS", JETS_PUT.get("stop_underlying", 25.0))
-    st.markdown(jets_card_html(jets_price, option_price, opt_pnl, opt_pct), unsafe_allow_html=True)
+    st.markdown(jets_card_html(jets_price, option_price, opt_pnl, opt_pct, option_source), unsafe_allow_html=True)
 
 with pcols[5]:
     st.markdown(cash_card_html(), unsafe_allow_html=True)

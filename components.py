@@ -200,8 +200,10 @@ def equity_card_html(ticker: str, price: float, pnl: float) -> str:
 
 
 def jets_card_html(underlying: float, option_price: float | None,
-                   pnl: float | None, pct: float | None) -> str:
-    opt_str  = f"${option_price:.2f}" if option_price else "N/A"
+                   pnl: float | None, pct: float | None,
+                   option_source: str | None = None) -> str:
+    source_tag = f" ({option_source})" if option_source and option_source != "last" else ""
+    opt_str  = f"${option_price:.2f}{source_tag}" if option_price else "N/A"
     pnl_str  = f"{_sign(pnl or 0)}${(pnl or 0):,.2f}" if pnl is not None else "N/A"
     pct_str  = f"{_sign(pct or 0)}{(pct or 0):.1f}%" if pct is not None else ""
     bg, fg   = _pnl_style(pnl or -1)

@@ -40,7 +40,7 @@ def _extract_price(market: dict) -> float:
     return float(price)
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=120)
 def fetch_kalshi_markets() -> list:
     """Fetch crisis-relevant markets from Kalshi via events endpoint."""
     try:
@@ -81,7 +81,7 @@ def fetch_kalshi_markets() -> list:
         return [{"source": "kalshi", "error": str(e)[:80]}]
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=120)
 def fetch_polymarket_odds() -> list:
     """Fetch high-volume crisis-relevant events from Polymarket."""
     try:
