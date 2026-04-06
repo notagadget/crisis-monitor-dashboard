@@ -172,7 +172,7 @@ def scenario_bar_html(countdown: str) -> str:
     items += (
         f'<div class="sc-item" style="text-align:right;">'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;'
-        f'letter-spacing:.5px;text-transform:uppercase;">Apr 6 Deadline</div>'
+        f'letter-spacing:.5px;text-transform:uppercase;">Apr 8 Deadline</div>'
         f'<div style="font-size:20px;font-weight:700;color:#a81828;">{countdown}</div>'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;">Iran ultimatum · 8pm ET</div>'
         f'</div>'
@@ -194,7 +194,7 @@ def equity_card_html(ticker: str, price: float, pnl: float) -> str:
         f'<div style="margin-top:4px;font-family:JetBrains Mono,monospace;font-size:11px;'
         f'padding:2px 8px;border-radius:3px;display:inline-block;background:{bg};color:{fg};">'
         f'{_sign(pnl)}${pnl:,.2f} &nbsp;{_sign(pct)}{pct:.1f}%</div><br>'
-        f'<span class="stop-badge">Stop ${p["stop"]:.2f}</span>'
+        f'<span class="stop-badge">Stop ${p["stop"]:.2f}</span>' if p["stop"] is not None else ''
         f'</div>'
     )
 
@@ -205,10 +205,9 @@ def jets_card_html(underlying: float, option_price: float | None,
     pnl_str  = f"{_sign(pnl or 0)}${(pnl or 0):,.2f}" if pnl is not None else "N/A"
     pct_str  = f"{_sign(pct or 0)}{(pct or 0):.1f}%" if pct is not None else ""
     bg, fg   = _pnl_style(pnl or -1)
-    days_left = (
-        (__import__("datetime").date(2026, 6, 20)
-         - __import__("datetime").date.today()).days
-    )
+    from datetime import date as _date
+    _exp = _date(*[int(x) for x in JETS_PUT["expiry_date"].split("-")])
+    days_left = (_exp - _date.today()).days
     return (
         f'<div class="pos-card opts warn">'
         f'<div class="pos-ticker">JETS puts</div>'

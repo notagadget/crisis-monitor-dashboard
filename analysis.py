@@ -129,15 +129,15 @@ THESIS POSITIONS (live prices):
 - Dry powder: ~$16,500
 
 LEGACY HOLDS (excluded from thesis eval):
-- GLD 10sh: ${prices.get('GLD', 'N/A')} (entry $281.57) — hold
-- VTV 10sh: ${prices.get('VTV', 'N/A')} (entry $132.06) — hold
+- GLD 10sh: ${prices.get('GLD', 'N/A')} (entry ${POSITIONS['GLD']['entry']}) — hold
+- VTV 10sh: ${prices.get('VTV', 'N/A')} (entry ${POSITIONS['VTV']['entry']}) — hold
 {markets_section}
 EXIT SIGNAL STATUS:
 {sig_ctx}
 
 WAITING LIST: {wait_str}
 
-CRITICAL DATES: Good Friday Apr 4 (closed) · Iran ultimatum Apr 6 8pm ET
+CRITICAL DATES: Good Friday Apr 4 (closed) · Iran ultimatum Apr 8 8pm ET
 
 Respond with exactly 5 sections, under 70 words each:
 1. SITUATION UPDATE
@@ -194,7 +194,7 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
     - LIN: {px('LIN')} (entry 495.85, stop 456) | Apr 30 earnings
     - JETS underlying: {px('JETS')} | put last: {jets_str} | paid 1.72 | stop JETS above 27
     - VTIP: {px('VTIP')} (entry 49.935, stop 47.50)
-    - GLD: {px('GLD')} | VTV: {px('VTV')}
+    - GLD: {px('GLD')} (entry {POSITIONS['GLD']['entry']}) | VTV: {px('VTV')} (entry {POSITIONS['VTV']['entry']})
     - Dry powder: approximately 16500
 
 {markets_str}
