@@ -333,70 +333,35 @@ def calendar_html() -> str:
     )
 
 
-def prediction_markets_html(kalshi: dict, poly: dict) -> str:
+def prediction_markets_html(kalshi: list, poly: list) -> str:
     """Horizontal strip showing live prediction market odds."""
+    all_markets = [m for m in kalshi + poly if not m.get("error")]
     items = []
 
-    # Kalshi WTI range — show up to 3
-    wti = kalshi.get("wti_range", [])
-    wti_valid = [m for m in wti if not m.get("error")]
-    if wti_valid:
-        labels = []
-        for m in wti_valid[:3]:
-            labels.append(
-                f'<span style="color:var(--text);font-weight:600;">{m["yes_pct"]}%</span>'
-                f'<span style="color:var(--text3);font-size:9px;"> {m["subtitle"][:30]}</span>'
-            )
+    if not all_markets:
         items.append(
-            f'<div style="flex:1;min-width:0;">'
-            f'<div style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;'
-            f'color:var(--text3);margin-bottom:3px;">Kalshi WTI Range</div>'
-            f'<div style="display:flex;flex-direction:column;gap:1px;">'
-            + "".join(f"<div>{l}</div>" for l in labels)
-            + "</div></div>"
+            '<div style="flex:1;min-width:0;">'
+            '<div style="color:var(--text3);font-size:10px;">Markets unavailable</div></div>'
         )
     else:
-        items.append(
-            f'<div style="flex:1;min-width:0;">'
-            f'<div style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;'
-            f'color:var(--text3);margin-bottom:3px;">Kalshi WTI Range</div>'
-            f'<div style="color:var(--text3);font-size:10px;">unavailable</div></div>'
-        )
-
-    # Kalshi single markets (recession, iran)
-    for key, label in [("recession", "Kalshi Recession"), ("iran_deal", "Kalshi Iran")]:
-        m = kalshi.get(key, {})
-        if m.get("error"):
-            val_html = '<span style="color:var(--text3);font-size:10px;">unavailable</span>'
-        else:
-            val_html = (
+        for m in all_markets[:6]:
+            source = m.get("source", "").upper()
+            src_label = "K" if source == "KALSHI" else "PM"
+            title = m.get("title", "")
+            short_title = (title[:45] + "...") if len(title) > 48 else title
+            pct = m.get("yes_pct", "?")
+            items.append(
+                f'<div style="flex:1;min-width:120px;max-width:200px;">'
+                f'<div style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;'
+                f'color:var(--text3);margin-bottom:3px;">'
+                f'<span style="background:var(--border);border-radius:2px;padding:0 3px;'
+                f'margin-right:4px;font-size:7px;">{src_label}</span>'
+                f'{short_title}</div>'
                 f'<span style="font-size:16px;font-weight:700;color:var(--text);">'
-                f'{m.get("yes_pct", "?")}%</span>'
+                f'{pct}%</span>'
                 f'<span style="color:var(--text3);font-size:9px;"> YES</span>'
+                f'</div>'
             )
-        items.append(
-            f'<div style="flex:1;min-width:0;">'
-            f'<div style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;'
-            f'color:var(--text3);margin-bottom:3px;">{label}</div>'
-            f'{val_html}</div>'
-        )
-
-    # Polymarket Hormuz
-    pm = poly.get("hormuz_apr", {})
-    if pm.get("error"):
-        pm_html = '<span style="color:var(--text3);font-size:10px;">unavailable</span>'
-    else:
-        pm_html = (
-            f'<span style="font-size:16px;font-weight:700;color:var(--text);">'
-            f'{pm.get("yes_price", "?")}%</span>'
-            f'<span style="color:var(--text3);font-size:9px;"> YES</span>'
-        )
-    items.append(
-        f'<div style="flex:1;min-width:0;">'
-        f'<div style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;'
-        f'color:var(--text3);margin-bottom:3px;">Polymarket Hormuz</div>'
-        f'{pm_html}</div>'
-    )
 
     return (
         f'<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;'
