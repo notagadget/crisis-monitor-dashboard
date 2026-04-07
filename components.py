@@ -172,7 +172,7 @@ def scenario_bar_html(countdown: str) -> str:
     items += (
         f'<div class="sc-item" style="text-align:right;">'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;'
-        f'letter-spacing:.5px;text-transform:uppercase;">Apr 8 Deadline</div>'
+        f'letter-spacing:.5px;text-transform:uppercase;">Apr 7 Deadline</div>'
         f'<div style="font-size:20px;font-weight:700;color:#a81828;">{countdown}</div>'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;">Iran ultimatum · 8pm ET</div>'
         f'</div>'
