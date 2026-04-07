@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(curl -s \"https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=20\")",
+      "Bash(python3 -c \":*)",
+      "Bash(curl -s \"https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false\")",
+      "Bash(git push:*)",
+      "Bash(gh auth:*)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''analysis.py'', doraise=True\\); py_compile.compile\\(''kalshi.py'', doraise=True\\); py_compile.compile\\(''data.py'', doraise=True\\); py_compile.compile\\(''app.py'', doraise=True\\); py_compile.compile\\(''components.py'', doraise=True\\); print\\(''All files compile OK''\\)\")",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\(''analysis.py'', doraise=True\\); py_compile.compile\\(''kalshi.py'', doraise=True\\); py_compile.compile\\(''data.py'', doraise=True\\); py_compile.compile\\(''app.py'', doraise=True\\); py_compile.compile\\(''components.py'', doraise=True\\); print\\(''All files compile OK''\\)\")",
+      "Bash(python3 -c \"from datetime import datetime; d = datetime.fromisoformat\\(''2026-04-08T20:00:00''\\); print\\(d.strftime\\(''%b %-d''\\)\\); print\\(d.strftime\\(''%B %-d''\\)\\)\")",
+      "Bash(python3 -c \"from datetime import datetime; d = datetime.strptime\\(''2026-06-18'', ''%Y-%m-%d''\\); print\\(d.strftime\\(''%b%-d''\\)\\)\")",
+      "Bash(pip3 show:*)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\(''data.py'', doraise=True\\); print\\(''OK''\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(gh api:*)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\(''app.py'', doraise=True\\); print\\(''OK''\\)\")",
+      "Bash(git config:*)",
+      "Bash(ssh-keygen -t ed25519 -C \"adam@crisis-monitor\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(git remote:*)",
+      "Bash(git reset:*)",
+      "Bash(git pull:*)"
+    ]
+  }
+}
