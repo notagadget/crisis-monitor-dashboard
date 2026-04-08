@@ -122,13 +122,12 @@ def build_prompt(prices: dict, jets_option_price: float | None,
 
     return f"""You are a geopolitical crisis trading analyst. Today is {date.today().strftime('%B %d, %Y')}.
 
-THESIS POSITIONS (live prices):
-- RTX:  ${prices.get('RTX', 'N/A')} (entry $185.84, stop $184) | Apr 28 earnings
-- NOC:  ${prices.get('NOC', 'N/A')} (entry $678.35, stop $631) | Apr 21 earnings
-- LIN:  ${prices.get('LIN', 'N/A')} (entry $495.85, stop $456) | Apr 30 earnings
-- JETS ${JETS_PUT["strike"]} {datetime.strptime(JETS_PUT["expiry_date"], "%Y-%m-%d").strftime("%b%-d")} puts {JETS_PUT["contracts"]}×: underlying ${jets_underlying} | put {jets_opt_str} | paid ${JETS_PUT["premium_paid"]} | stop JETS>${JETS_PUT["stop_underlying"]}
-- VTIP: ${prices.get('VTIP', 'N/A')} (entry $49.935, stop $47.50)
-- Dry powder: ~$16,500
+THESIS STATUS: PAUSED — Ceasefire announced April 8. All positions exited.
+No active thesis equity positions.
+JETS puts (10× $23 Jun18): CLOSED at $0.55 (entry $1.72) — realized loss ~−$1,170.
+Net thesis P&L: ~−$1,070 (equities +$100, JETS puts −$1,170).
+Dry powder: ~$16,500 (fully available — all exits roughly break-even net).
+Re-entry criteria: ceasefire breakdown or negotiations stall with 2+ signals clearing.
 
 LEGACY HOLDS (excluded from thesis eval):
 - GLD 10sh: ${prices.get('GLD', 'N/A')} (entry ${POSITIONS['GLD']['entry']}) — hold
@@ -139,13 +138,13 @@ EXIT SIGNAL STATUS:
 
 WAITING LIST: {wait_str}
 
-CRITICAL DATES: Iran ultimatum {datetime.fromisoformat(DEADLINE_ISO).strftime("%b %-d")} 8pm ET
+CRITICAL DATES: Ceasefire expires {datetime.fromisoformat(DEADLINE_ISO).strftime("%b %-d")} 8pm ET
 
 Respond with exactly 5 sections, under 70 words each:
 1. SITUATION UPDATE
 2. SIGNAL ASSESSMENT
-3. POSITION ALERTS — focus on JETS stop proximity and RTX recovery
-4. WAITING LIST — which entries are ready to execute now
+3. RE-ENTRY WATCH — which signals/events would trigger thesis re-activation
+4. WAITING LIST — which entries move to ready on ceasefire breakdown
 5. KEY RISK before {datetime.fromisoformat(DEADLINE_ISO).strftime("%B %-d")}"""
 
 
@@ -190,16 +189,15 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
     return f"""You are a geopolitical crisis trading analyst. Today is {today}.
     Produce a single JSON response combining a morning briefing AND a full intelligence brief.
 
-    IMPORTANT: In your JSON response, do NOT use backslashes except for standard JSON escapes (\", \\, \n, \t). Do not escape dollar signs. Write dollar amounts as plain text, e.g. "$185.84" not "\$185.84".
+    IMPORTANT: In your JSON response, do NOT use backslashes except for standard JSON escapes (\", \\, \n, \t). Do not escape dollar signs. Write dollar amounts as plain text, e.g. "$16,500" not "\$16,500".
 
-    CURRENT LIVE PRICES:
-    - RTX: {px('RTX')} (entry 185.84, stop 184) | Apr 28 earnings
-    - NOC: {px('NOC')} (entry 678.35, stop 631) | Apr 21 earnings
-    - LIN: {px('LIN')} (entry 495.85, stop 456) | Apr 30 earnings
-    - JETS underlying: {px('JETS')} | put last: {jets_str} | paid 1.72 | stop JETS above 27
-    - VTIP: {px('VTIP')} (entry 49.935, stop 47.50)
-    - GLD: {px('GLD')} (entry {POSITIONS['GLD']['entry']}) | VTV: {px('VTV')} (entry {POSITIONS['VTV']['entry']})
-    - Dry powder: approximately 16500
+    THESIS STATUS: PAUSED — Ceasefire announced April 8. All positions exited.
+    No active thesis equity positions.
+    JETS puts (10x $23 Jun18): CLOSED at 0.55 (entry 1.72) — realized loss approximately -1170.
+    Net thesis P&L: approximately -1070 (equities +100, JETS puts -1170).
+    Legacy holds: GLD: {px('GLD')} (entry {POSITIONS['GLD']['entry']}) | VTV: {px('VTV')} (entry {POSITIONS['VTV']['entry']})
+    Dry powder: approximately 16500 (fully available — all exits roughly break-even net)
+    Re-entry criteria: ceasefire breakdown or negotiations stall with 2+ signals clearing.
 
 {markets_str}
 
@@ -211,21 +209,21 @@ WAITING LIST (current status):
 
 THESIS CONTEXT:
 Operation Epic Fury (Feb 28): US/Israel struck Iran, Hormuz closed (~20% global oil).
-Pezeshkian "open to talks" signal unconfirmed, disputed by Iranian state media.
-White House said Hormuz reopening is NOT a core objective of the operation.
-New supreme leader Mojtaba Khamenei: Hormuz leverage "must continue to be used."
-Exit rule: 2+ signals triggered = reduce energy longs 30-40%.
+Two-week ceasefire announced April 8. Exit rule triggered (3 signals): S3/S4/S8 all TRIGGERED.
+Thesis paused — ceasefire does NOT resolve Iran's reparations demands or unconditionally reopen Hormuz.
+Thesis can re-activate if ceasefire breaks down after Apr 22 expiry.
+Re-entry requires ceasefire breakdown AND 2+ signals clearing again.
 
 BASELINE SCENARIO PROBABILITIES (update based on latest signals + prediction markets):
-- A (Full resolution, Brent <$85): currently 15%
-- B (Partial resolution / convoy escorts, Brent $85–100): currently 50%
-- C (Escalation / Kharg strike, Brent $120–200): currently 35%
+- A (Resolution, ceasefire holds, Hormuz reopens conditionally): currently 45%
+- B (Partial resolution / toll regime, stalled negotiations): currently 40%
+- C (Escalation, ceasefire breaks down after Apr 22, strikes resume): currently 15%
 
 AI BRIEF FORMAT — for the ai_brief field, write exactly 5 sections, each under 70 words:
 1. SITUATION UPDATE
 2. SIGNAL ASSESSMENT
-3. POSITION ALERTS — focus on JETS stop proximity and RTX recovery
-4. WAITING LIST — which entries are ready to execute now
+3. RE-ENTRY WATCH — which signals/events would trigger thesis re-activation
+4. WAITING LIST — which entries move to ready on ceasefire breakdown
 5. KEY RISK before {datetime.fromisoformat(DEADLINE_ISO).strftime("%B %-d")}
 
 Respond ONLY with valid JSON, no preamble, no markdown fences:

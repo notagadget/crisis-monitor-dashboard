@@ -3,18 +3,14 @@ config.py — static constants only. Edit this file to update positions,
 signals, waiting list entries, or calendar events. No logic here.
 """
 # App Version Number
-APP_VERSION = "v0.7"
-LAST_UPDATED = "April 5, 2026"  # update manually or via Morning Sync
+APP_VERSION = "v0.8"
+LAST_UPDATED = "April 8, 2026"  # update manually or via Morning Sync
 
 
 # ── POSITIONS ─────────────────────────────────────────────────────────────────
 # thesis: True = included in thesis P&L bucket
 # stop: None = no hard stop set
 POSITIONS = {
-    "RTX":  {"shares": 10,  "entry": 185.84, "stop": 184.00, "type": "Equity", "thesis": True},
-    "NOC":  {"shares": 2,   "entry": 678.35, "stop": 631.00, "type": "Equity", "thesis": True},
-    "LIN":  {"shares": 6,   "entry": 495.85, "stop": 456.00, "type": "Equity", "thesis": True},
-    "VTIP": {"shares": 40,  "entry": 49.935, "stop": 47.50,  "type": "Equity", "thesis": True},
     "GLD":  {"shares": 10,  "entry": 414.57, "stop": None,   "type": "Equity", "thesis": False},
     "VTV":  {"shares": 10,  "entry": 194.16, "stop": None,   "type": "Equity", "thesis": False},
 }
@@ -29,11 +25,11 @@ JETS_PUT = {
     "premium_paid":      1.72,              # per share
     "stop_underlying":   27.00,             # exit if JETS closes above this
     "underlying":        "JETS",
+    "active":            False,             # closed Apr 8 at $0.55 — realized loss ~−$1,170
 }
 
 # Tickers to fetch from yfinance (underlying prices only)
-PRICE_TICKERS = ["RTX", "NOC", "LIN", "VTIP", "GLD", "VTV", "JETS",
-                 "XOM", "CVX", "APD", "USO", "MOS", "CF"]
+PRICE_TICKERS = ["GLD", "VTV", "JETS", "XOM", "CVX", "APD", "USO", "MOS", "CF"]
 
 # Cash / dry powder (update manually when deployed)
 DRY_POWDER = 16_500
@@ -42,14 +38,14 @@ DRY_POWDER = 16_500
 # Default state: 0=clear, 1=caution, 2=triggered
 # Update defaults here when a signal's status changes materially between sessions
 SIGNAL_DEFAULTS = {
-    "s1": 1,  # Shipping insurance declining   ← CAUTION (UNSC vote today; escorts possible)
-    "s2": 0,  # Futures curve flattening        (steep backwardation persists; WTI>Brent inversion)
-    "s3": 2,  # Xi–Trump diplomatic signal      ← TRIGGERED (China blocked ships Mar 27; China-Pakistan 5-pt plan; active mediation)
-    "s4": 1,  # Iranian pragmatist signals       ← CAUTION (Pezeshkian "open to talks" but state media contradicts; Iran rejected US proposal)
-    "s5": 0,  # Linde/APD force majeure lifted  (Qatar FM active; no Ras Laffan resumption)
-    "s6": 0,  # SPR drawdown slowing            (400M bbl release ongoing; ~120 days)
-    "s7": 1,  # Media maximum consensus          ← CAUTION (energy bull very mainstream; WTI inversion coverage)
-    "s8": 1,  # Trump resolution post            ← CAUTION (3rd deadline Apr 6 not yet passed; if no action → TRIGGERED)
+    "s1": 0,  # war risk premiums easing with ceasefire
+    "s2": 0,  # curve flattening as oil retreats
+    "s3": 2,  # TRIGGERED — stays, ceasefire is a diplomatic signal
+    "s4": 2,  # TRIGGERED — ceasefire confirms pragmatist faction
+    "s5": 0,  # unchanged
+    "s6": 0,  # unchanged
+    "s7": 0,  # crowding risk resolved with exit
+    "s8": 2,  # TRIGGERED — ceasefire = resolution post equivalent
 }
 
 SIGNAL_NAMES = {
@@ -64,46 +60,47 @@ SIGNAL_NAMES = {
 }
 
 SIGNAL_DESC = {
-    "s1": "UNSC vote Apr 4 on 'defensive force' for Hormuz escorts — if passes, war risk premiums could ease rapidly.",
-    "s2": "WTI $110.85 now ABOVE Brent $108.95 — historic inversion; record front-month backwardation. Curve not flattening.",
-    "s3": "TRIGGERED: China blocked 2 ships Mar 27; China-Pakistan 5-pt peace plan published; active mediation underway.",
-    "s4": "Pezeshkian 'open to talks' BUT Iran rejected US proposal, demanding Hormuz sovereignty recognition.",
-    "s5": "Qatar FM active. No Ras Laffan LNG/helium resumption. Selective Hormuz opening excludes US-linked vessels.",
-    "s6": "400M bbl SPR release running (~120 days). IEA warns Apr disruptions 2× worse than March.",
-    "s7": "WTI/Brent inversion now mainstream financial news. Energy bull thesis crowded.",
-    "s8": "Trump set Tue 8pm ET deadline; named power plants + bridges. Not a soft extension.",}
+    "s1": "War risk premiums easing with ceasefire announcement. Shipping insurance declining.",
+    "s2": "Oil retreating as ceasefire reduces immediate supply disruption risk. Backwardation flattening.",
+    "s3": "TRIGGERED: Ceasefire = diplomatic resolution signal. China-Pakistan mediation active throughout.",
+    "s4": "TRIGGERED: Ceasefire confirms pragmatist faction influence. Pezeshkian-aligned outcome.",
+    "s5": "Ras Laffan structurally still closed. Selective Hormuz opening does not reopen LNG/helium routes.",
+    "s6": "SPR release ongoing. No drawdown slowdown observed.",
+    "s7": "Energy bull thesis unwinding with ceasefire — crowding risk resolved with exit.",
+    "s8": "TRIGGERED: Ceasefire declared April 8 — resolution equivalent per exit rule.",
+}
 
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 # Ordered most-likely to least-likely
 SCENARIOS = [
-    {"pct": "45%", "color": "#a81828", "name": "C — Escalation",
-     "desc": "Trump named power plants + bridges for Tue. F-15E downed, A-10 hit. Polymarket 96% forces enter by Apr 30.", "active": True},
+    {"pct": "45%", "color": "#126030", "name": "A — Resolution",
+     "desc": "Ceasefire holds, Hormuz reopens conditionally. Iran reparations framework agreed.", "active": True},
     {"pct": "40%", "color": "#1a6bb0", "name": "B — Partial Resolution",
-     "desc": "Toll regime functioning. 53 transits last week. Oman-Iran talks underway.", "active": False},
-    {"pct": "15%", "color": "#126030", "name": "A — Resolution",
-     "desc": "Iran demanding reparations + toll fees before reopening. Hardliners dominant.", "active": False},
+     "desc": "Ceasefire → stalled negotiations → toll regime. Partial Hormuz reopening.", "active": False},
+    {"pct": "15%", "color": "#a81828", "name": "C — Escalation",
+     "desc": "Ceasefire breaks down after Apr 22 expiry. Strikes resume. Hormuz fully closed.", "active": False},
 ]
 
-DEADLINE_ISO = "2026-04-07T20:00:00"   # ET — Iran ultimatum
+DEADLINE_ISO = "2026-04-22T20:00:00"   # ET — ceasefire expiry
 DEADLINE_TZ  = "America/Detroit"
 
 # ── WAITING LIST ──────────────────────────────────────────────────────────────
 # status options: ready | event | watching | patience
 WAITING_LIST = [
-    {"ticker": "XOM / CVX", "status": "event", "when": "Post-Tue Strike",
-     "cond": "If infra strike confirmed Tue: enter at Mon open. WTI already $113+, don't chase before.",
+    {"ticker": "XOM / CVX", "status": "patience", "when": "Post-Ceasefire",
+     "cond": "Ceasefire pause — wait for breakdown or stalled negotiations before entering energy longs.",
      "alloc": "$3,000"},
-    {"ticker": "APD",       "status": "event",    "when": "Near Ready",
-     "cond": "Helium containers past storage window. Selective Hormuz opening does NOT reopen Ras Laffan for LNG/helium.",
+    {"ticker": "APD",       "status": "watching", "when": "Ras Laffan Structural",
+     "cond": "Ras Laffan LNG/helium still structurally closed. Ceasefire does not reopen helium routes.",
      "alloc": "$2,000"},
-    {"ticker": "MOS / CF",  "status": "event",    "when": "Elevated Priority",
-     "cond": "Iran toll legislation + fertilizer UN exemption is a band-aid. Spring planting window creating urgency.",
+    {"ticker": "MOS / CF",  "status": "watching", "when": "Supply Disruption",
+     "cond": "Fertilizer supply disruption persists structurally even under ceasefire. Spring planting watch.",
      "alloc": "$2,000"},
-    {"ticker": "USO calls", "status": "watching", "when": "Post Apr 6",
-     "cond": "WTI $111 already prices partial escalation. Calls expensive. Wait for vol crush or Kharg strike confirmation.",
+    {"ticker": "USO calls", "status": "patience", "when": "Post-Ceasefire",
+     "cond": "Ceasefire pause — wait for breakdown or vol crush. Do not chase into ceasefire rally.",
      "alloc": "$1,000–1,500"},
-    {"ticker": "SLB",       "status": "patience", "when": "2–4 Weeks",
-     "cond": "Wait for XOM/CVX drilling capex announcement as trigger.",
+    {"ticker": "SLB",       "status": "patience", "when": "Post-Ceasefire",
+     "cond": "Wait for XOM/CVX drilling capex announcement as trigger. Ceasefire pause.",
      "alloc": "$2,000"},
     {"ticker": "GLD calls", "status": "patience", "when": "Technical",
      "cond": "Add calls only on 2 consecutive closes above 100-day SMA.",
@@ -112,11 +109,11 @@ WAITING_LIST = [
 
 # ── CALENDAR ──────────────────────────────────────────────────────────────────
 CALENDAR = [
-    {"date": "Apr 4",  "event": "Good Friday — market closed · UNSC Hormuz force vote", "crit": True},
-    {"date": "Apr 6/8", "event": "Trump Tue 8pm ET deadline — power plants + bridges", "crit": True},
+    {"date": "Apr 4",  "event": "Good Friday — market closed · UNSC Hormuz force vote", "crit": False},
     {"date": "Apr 7",  "event": "EIA Short-Term Energy Outlook",                         "crit": False},
     {"date": "Apr 10", "event": "CPI report — first post-war inflation read",            "crit": False},
     {"date": "Apr 21", "event": "NOC earnings",                                          "crit": False},
+    {"date": "Apr 22", "event": "Ceasefire expires — re-evaluate thesis",               "crit": True},
     {"date": "Apr 28", "event": "RTX earnings (before open)",                            "crit": False},
     {"date": "Apr 30", "event": "LIN earnings",                                          "crit": False},
     {"date": "Jun 18", "event": "JETS puts expiry",                                      "crit": False},
@@ -125,12 +122,13 @@ CALENDAR = [
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 34 — April 3, 2026",
+    "label": "Day 39 — April 8, 2026 — Thesis Paused",
     "body": (
-        "Signal 3 upgrades to TRIGGERED: China-Pakistan actively mediating, China blocked ships Mar 27. "
-        "WTI $111 now above Brent $108.95 — historic inversion signaling extreme prompt-supply stress. "
-        "UNSC votes today on defensive force for Hormuz escorts; Russia/China veto likely. "
-        "Iran rejected US proposal, demanding Hormuz sovereignty recognition — Scenario A now requires a toll regime, not unconditional opening. "
-        "With 1 triggered + 3 caution: PREPARE TO REDUCE if Apr 6 passes without action (S8 → TRIGGERED = 2 total)."
+        "Two-week ceasefire announced. All thesis positions exited: JETS puts at $0.55 "
+        "(−$1,170), equities at ~+$100. Net thesis loss ~−$1,070. Three signals now TRIGGERED "
+        "(S3/S4/S8) — exit rule executed correctly. Dry powder intact at ~$16,500. "
+        "Thesis paused, not dead — ceasefire doesn't resolve Iran's reparations demands "
+        "or unconditionally reopen Hormuz. Re-entry criteria: ceasefire breakdown or "
+        "negotiations stall with 2+ signals clearing."
     ),
 }
