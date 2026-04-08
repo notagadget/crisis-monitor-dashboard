@@ -84,7 +84,7 @@ SCENARIOS = [
      "desc": "Iran demanding reparations + toll fees before reopening. Hardliners dominant.", "active": False},
 ]
 
-DEADLINE_ISO = "2026-04-08T20:00:00"   # ET — Iran ultimatum
+DEADLINE_ISO = "2026-04-07T20:00:00"   # ET — Iran ultimatum
 DEADLINE_TZ  = "America/Detroit"
 
 # ── WAITING LIST ──────────────────────────────────────────────────────────────
