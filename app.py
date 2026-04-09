@@ -14,7 +14,7 @@ import anthropic
 
 from config import (
     POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC,
-    SIGNAL_DEFAULTS, WAITING_LIST, DRY_POWDER,
+    SIGNAL_DEFAULTS, WAITING_LIST, DRY_POWDER, THESIS_PAUSED,
 )
 from data import fetch_prices, fetch_option_prices, countdown_to_deadline
 from analysis import (
@@ -530,8 +530,8 @@ with col_ai:
         )
 
 with col_sig:
-    st.markdown('<div class="sec-label">Exit Signals</div>', unsafe_allow_html=True)
-    st.caption("Click to cycle: Clear → Caution → Triggered")
+    st.markdown('<div class="sec-label">Thesis Signals</div>', unsafe_allow_html=True)
+    st.caption("Click to cycle · Paused: watching for clearance" if THESIS_PAUSED else "Click to cycle: Clear → Caution → Triggered")
     emoji = {0: "🔵", 1: "🟡", 2: "🔴"}
     for sid in SIGNAL_NAMES:
         state = st.session_state.signals[sid]

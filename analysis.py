@@ -5,7 +5,7 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 
 import re
 from datetime import date, datetime
-from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY
+from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY, THESIS_PAUSED
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
@@ -75,24 +75,40 @@ def score_signals(signals: dict) -> dict:
     """
     Returns score metadata used by both the UI score box and the prompt.
     signals: {sid: 0|1|2}
+
+    When THESIS_PAUSED=True, signals read as re-entry indicators (want TRIGGERED to clear).
+    When THESIS_PAUSED=False, signals read as exit indicators (current behavior).
     """
     triggered = sum(1 for v in signals.values() if v == 2)
     caution   = sum(1 for v in signals.values() if v == 1)
 
-    if triggered >= 2:
-        return {"n": triggered + caution, "lbl": "TRIGGERED / 8",
-                "action": "Reduce energy longs 30–40%", "color": "#ff6070"}
-    if triggered == 1:
-        return {"n": triggered + caution, "lbl": "1 Triggered / 8",
-                "action": "One triggered — prepare to reduce", "color": "#ffaa40"}
-    if caution >= 2:
-        return {"n": caution, "lbl": "Caution signals / 8",
-                "action": "Amber — monitor, no exits yet", "color": "#ffaa40"}
-    if caution == 1:
-        return {"n": caution, "lbl": "Caution signals / 8",
-                "action": "One caution — hold, watch closely", "color": "rgba(255,255,255,0.8)"}
-    return {"n": 0, "lbl": "Triggered / 8",
-            "action": "All clear — hold positions", "color": "#3dd880"}
+    if THESIS_PAUSED:
+        # Re-entry mode: TRIGGERED signals are BAD (still blocking re-entry)
+        if triggered >= 2:
+            return {"n": triggered + caution, "lbl": "Triggered / 8",
+                    "action": "Watching — need S3/S4/S8 to clear before re-entry", "color": "#ff6070"}
+        if triggered == 1:
+            return {"n": triggered + caution, "lbl": "Triggered / 8",
+                    "action": "1 signal clearing — monitor for follow-through", "color": "#ffaa40"}
+        if triggered == 0:
+            return {"n": 0, "lbl": "Triggered / 8",
+                    "action": "Signals clear — re-entry criteria met", "color": "#3dd880"}
+    else:
+        # Exit mode: TRIGGERED signals are GOOD (trigger exit)
+        if triggered >= 2:
+            return {"n": triggered + caution, "lbl": "TRIGGERED / 8",
+                    "action": "Reduce energy longs 30–40%", "color": "#ff6070"}
+        if triggered == 1:
+            return {"n": triggered + caution, "lbl": "1 Triggered / 8",
+                    "action": "One triggered — prepare to reduce", "color": "#ffaa40"}
+        if caution >= 2:
+            return {"n": caution, "lbl": "Caution signals / 8",
+                    "action": "Amber — monitor, no exits yet", "color": "#ffaa40"}
+        if caution == 1:
+            return {"n": caution, "lbl": "Caution signals / 8",
+                    "action": "One caution — hold, watch closely", "color": "rgba(255,255,255,0.8)"}
+        return {"n": 0, "lbl": "Triggered / 8",
+                "action": "All clear — hold positions", "color": "#3dd880"}
 
 
 # ── DAILY ANALYSIS PROMPT ─────────────────────────────────────────────────────
@@ -104,11 +120,16 @@ def build_prompt(prices: dict, signals: dict, markets_str: str = "",
     markets_str: formatted prediction market string from kalshi.format_markets_for_prompt()
     options_results: list of active option position dicts with price/pnl (from app.py)
     """
-    sig_ctx = "\n".join(
+    sig_list = "\n".join(
         f"{i+1}. {SIGNAL_NAMES[sid]}: "
         f"{'TRIGGERED' if signals[sid] == 2 else 'CAUTION' if signals[sid] == 1 else 'CLEAR'}"
         for i, sid in enumerate(SIGNAL_NAMES)
     )
+
+    if THESIS_PAUSED:
+        sig_ctx = "THESIS STATUS: PAUSED — signals read as re-entry indicators (want TRIGGERED to clear)\n" + sig_list
+    else:
+        sig_ctx = sig_list
 
     if options_results:
         opts_lines = "\n".join(
@@ -191,11 +212,14 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
     else:
         opts_section = "Options: None currently active. JETS puts closed Apr 8 at 0.55 (entry 1.72) — realized loss approximately -1170."
 
-    sig_ctx = "\n".join(
+    sig_list = "\n".join(
         f'  "{sid}": {{"current": {current_signals[sid]}, '
         f'"name": "{SIGNAL_NAMES[sid]}", "desc": "{SIGNAL_DESC[sid]}"}}'
         for sid in SIGNAL_NAMES
     )
+
+    thesis_status_line = "THESIS STATUS: PAUSED — signals read as re-entry indicators (want TRIGGERED to clear)" if THESIS_PAUSED else ""
+    sig_ctx = thesis_status_line + ("\n" if thesis_status_line else "") + sig_list
 
     wait_ctx = "\n".join(
         f'  {{"ticker": "{w["ticker"]}", "current_status": "{w["status"]}", '

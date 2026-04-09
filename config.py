@@ -6,6 +6,8 @@ signals, waiting list entries, or calendar events. No logic here.
 APP_VERSION = "v0.9"
 LAST_UPDATED = "April 9, 2026"  # update manually or via Morning Sync
 
+# Re-entry Signal Mode
+THESIS_PAUSED = True   # False when active positions exist
 
 # ── POSITIONS ─────────────────────────────────────────────────────────────────
 # thesis: True = included in thesis P&L bucket
