@@ -34,6 +34,16 @@ MAX_EVENT_MARKETS = 10
 MAX_KALSHI = 4
 MAX_POLYMARKET = 4
 
+THESIS_KEYWORDS = [
+    "hormuz", "iran", "ceasefire", "strait",
+    "oil", "nuclear", "persian gulf", "ras laffan",
+    "hezbollah", "vance", "pakistan", "sanctions",
+    "tehran", "irgc", "khamenei", "war"
+]
+
+FALLBACK_KALSHI_CATEGORIES = {"Economics", "Financials"}
+MIN_THESIS_MARKETS = 2  # pad with fallback if fewer thesis matches found
+
 
 def _kalshi_headers() -> dict:
     key = st.secrets.get("KALSHI_API_KEY", "")
@@ -43,6 +53,25 @@ def _kalshi_headers() -> dict:
 def _extract_price(market: dict) -> float:
     price = market.get("last_price_dollars") or market.get("previous_yes_bid_dollars") or 0
     return float(price)
+
+
+def _is_thesis_relevant(title: str) -> bool:
+    t = title.lower()
+    return any(kw in t for kw in THESIS_KEYWORDS)
+
+
+def _dedup_similar(markets: list, max_shared_words: int = 4) -> list:
+    """Drop near-duplicate titles, keeping higher volume first."""
+    kept = []
+    for m in markets:
+        words = set(m["title"].lower().split())
+        duplicate = any(
+            len(words & set(k["title"].lower().split())) > max_shared_words
+            for k in kept
+        )
+        if not duplicate:
+            kept.append(m)
+    return kept
 
 
 @st.cache_data(ttl=120)
@@ -60,29 +89,41 @@ def fetch_kalshi_markets() -> list:
         if not events:
             return [{"source": "kalshi", "error": "no open events returned"}]
 
-        results = []
-        for evt in events:
-            if evt.get("category") not in KALSHI_CATEGORIES:
-                continue
+        def _best_market(evt):
             markets = evt.get("markets", [])
             if not markets:
-                continue
-            # pick the market with the highest volume in this event
+                return None
             best = max(markets, key=lambda m: float(m.get("volume_fp", 0) or 0))
             vol = float(best.get("volume_fp", 0) or 0)
             price = _extract_price(best)
-            results.append({
-                "source":  "kalshi",
-                "ticker":  best.get("ticker", ""),
-                "title":   best.get("title", evt.get("title", "")),
-                "yes_pct": round(price * 100, 1),
-                "volume":  vol,
-                "error":   None,
-            })
+            return {
+                "source":   "kalshi",
+                "ticker":   best.get("ticker", ""),
+                "title":    best.get("title", evt.get("title", "")),
+                "yes_pct":  round(price * 100, 1),
+                "volume":   vol,
+                "category": evt.get("category", ""),
+                "error":    None,
+            }
 
-        # sort by volume descending
-        results.sort(key=lambda x: x["volume"], reverse=True)
-        return results[:MAX_KALSHI] if results else [{"source": "kalshi", "error": "no relevant markets"}]
+        all_results = [r for evt in events if (r := _best_market(evt)) is not None]
+        all_results.sort(key=lambda x: x["volume"], reverse=True)
+
+        thesis = [m for m in all_results if _is_thesis_relevant(m["title"])]
+        thesis = _dedup_similar(thesis)
+
+        if len(thesis) >= MIN_THESIS_MARKETS:
+            return thesis[:MAX_KALSHI]
+
+        # Pad with top fallback (Economics/Financials) markets not already included
+        fallback = [
+            m for m in all_results
+            if m["category"] in FALLBACK_KALSHI_CATEGORIES
+            and m not in thesis
+        ]
+        combined = (thesis + fallback)[:MAX_KALSHI]
+        return combined if combined else [{"source": "kalshi", "error": "no relevant markets"}]
+
     except Exception as e:
         return [{"source": "kalshi", "error": str(e)[:80]}]
 
@@ -95,7 +136,7 @@ def fetch_polymarket_odds() -> list:
             f"{POLYMARKET_API}/events",
             params={
                 "active": "true", "closed": "false",
-                "limit": 50, "order": "volume", "ascending": "false",
+                "limit": 100, "order": "volume", "ascending": "false",
             },
             timeout=10,
         )
@@ -104,46 +145,46 @@ def fetch_polymarket_odds() -> list:
         if not events:
             return [{"source": "polymarket", "error": "no active events returned"}]
 
-        results = []
+        def _yes_price(m):
+            try:
+                return float(json.loads(m.get("outcomePrices", '["0"]'))[0])
+            except (json.JSONDecodeError, IndexError, ValueError):
+                return 0
+
+        candidates = []
         for evt in events:
-            # filter out sports/entertainment by tag slugs
             tags = evt.get("tags") or []
-            if isinstance(tags, list) and tags and isinstance(tags[0], dict):
-                tag_slugs = {t.get("slug", "") for t in tags}
-            else:
-                tag_slugs = set()
+            tag_slugs = {t.get("slug", "") for t in tags} if isinstance(tags, list) and tags and isinstance(tags[0], dict) else set()
             if tag_slugs & POLY_EXCLUDE_TAGS:
                 continue
 
-            vol = float(evt.get("volume", 0) or 0)
             markets = evt.get("markets") or []
             open_markets = [m for m in markets if not m.get("closed") and m.get("outcomePrices")]
-            if not open_markets:
+            if not open_markets or len(open_markets) > MAX_EVENT_MARKETS:
                 continue
-            # skip nominee pools — events with many sub-markets where
-            # individual questions are meaningless ("Will Person X win...")
-            if len(open_markets) > MAX_EVENT_MARKETS:
-                continue
-            # pick the market with the highest YES price (most likely outcome)
-            def _yes_price(m):
-                try:
-                    return float(json.loads(m.get("outcomePrices", '["0"]'))[0])
-                except (json.JSONDecodeError, IndexError, ValueError):
-                    return 0
-            best = max(open_markets, key=_yes_price)
 
+            best = max(open_markets, key=_yes_price)
             prices = json.loads(best.get("outcomePrices", '["0","1"]'))
-            results.append({
-                "source":   "polymarket",
-                "title":    best.get("question", evt.get("title", "")),
-                "yes_pct":  round(float(prices[0]) * 100, 1),
-                "volume":   vol,
-                "error":    None,
+            title = best.get("question", evt.get("title", ""))
+            candidates.append({
+                "source":  "polymarket",
+                "title":   title,
+                "yes_pct": round(float(prices[0]) * 100, 1),
+                "volume":  float(evt.get("volume", 0) or 0),
+                "error":   None,
             })
 
-        # already sorted by volume from API, but re-sort after filtering
-        results.sort(key=lambda x: x["volume"], reverse=True)
-        return results[:MAX_POLYMARKET] if results else [{"source": "polymarket", "error": "no relevant events"}]
+        # Split into thesis-relevant and fallback
+        thesis = [m for m in candidates if _is_thesis_relevant(m["title"])]
+        thesis = _dedup_similar(thesis)
+
+        if len(thesis) >= MIN_THESIS_MARKETS:
+            return thesis[:MAX_POLYMARKET]
+
+        fallback = [m for m in candidates if m not in thesis]
+        combined = (thesis + fallback)[:MAX_POLYMARKET]
+        return combined if combined else [{"source": "polymarket", "error": "no relevant events"}]
+
     except Exception as e:
         return [{"source": "polymarket", "error": str(e)[:80]}]
 
