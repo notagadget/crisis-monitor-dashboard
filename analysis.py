@@ -173,8 +173,14 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
       - scenario_rationale: str  (≤40 words explaining the probability shift, if any)
       - ai_brief: str  (the 5-section intelligence brief, same format as standalone analysis)
       - key_insight: str (1 sentence)
+      - deadline_extension: null or ISO string "2026-05-06T20:00:00" if ceasefire is extended
+      - calendar_updates: null or list of {date, event, crit} if events need adding/changing
     """
     today = date.today().strftime("%B %d, %Y")
+
+    # Extract current day number and auto-increment
+    day_match = re.search(r'Day (\d+)', DAY_SUMMARY.get("label", ""))
+    next_day = int(day_match.group(1)) + 1 if day_match else "N"
 
     if options_results:
         opts_section = "Active options:\n" + "\n".join(
@@ -242,7 +248,7 @@ AI BRIEF FORMAT — for the ai_brief field, write exactly 5 sections, each under
 
 Respond ONLY with valid JSON, no preamble, no markdown fences:
 {{
-  "day_summary_label": "Day N - {today}",
+  "day_summary_label": "Day {next_day} - {today}",
   "day_summary_body": "plain text under 60 words",
   "signal_suggestions": {{
     "s1": {{"suggested": 0, "reason": "one sentence"}},
@@ -259,6 +265,8 @@ Respond ONLY with valid JSON, no preamble, no markdown fences:
   ],
   "scenario_probabilities": {{"A": 15, "B": 50, "C": 35}},
   "scenario_rationale": "one sentence explaining any probability shift vs baseline",
+  "deadline_extension": null,
+  "calendar_updates": null,
   "ai_brief": "1. SITUATION UPDATE:\\n<text>\\n\\n2. SIGNAL ASSESSMENT:\\n<text>\\n\\n3. POSITION ALERTS:\\n<text>\\n\\n4. WAITING LIST:\\n<text>\\n\\n5. KEY RISK:\\n<text>",
   "key_insight": "single most important thing the trader needs to know right now"
 }}"""

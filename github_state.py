@@ -147,6 +147,72 @@ def patch_waiting_list_status(config_text: str, ticker: str, new_status: str,
     return re.sub(pattern, replacement, config_text)
 
 
+def patch_waiting_list(config_text: str, waiting_list: list) -> str:
+    """
+    Replace the entire WAITING_LIST block atomically.
+    waiting_list: list of dicts with keys: ticker, status, when, cond, alloc
+    """
+    # Generate Python literal list-of-dicts preserving the 5-key structure
+    lines = []
+    for w in waiting_list:
+        line = (
+            "    {\n"
+            f'        "ticker": {json.dumps(w.get("ticker", ""))},\n'
+            f'        "status": {json.dumps(w.get("status", ""))},\n'
+            f'        "when": {json.dumps(w.get("when", ""))},\n'
+            f'        "cond": {json.dumps(w.get("cond", ""))},\n'
+            f'        "alloc": {json.dumps(w.get("alloc", ""))},\n'
+            "    },"
+        )
+        lines.append(line)
+
+    new_block = "WAITING_LIST = [\n" + "\n".join(lines) + "\n]"
+    pattern = r'WAITING_LIST\s*=\s*\[.*?\]'
+    # Use lambda to avoid backslash interpretation issues in re.sub
+    result = re.sub(pattern, lambda m: new_block, config_text, flags=re.DOTALL)
+    if result == config_text:
+        result = config_text.rstrip() + '\n\n' + new_block + '\n'
+    return result
+
+
+def patch_deadline_iso(config_text: str, deadline_iso: str) -> str:
+    """
+    Replace DEADLINE_ISO with a new ISO datetime string.
+    deadline_iso: e.g., "2026-05-06T20:00:00"
+    """
+    return re.sub(
+        r'(DEADLINE_ISO\s*=\s*")[^"]*(")',
+        rf'\g<1>{deadline_iso}\g<2>',
+        config_text,
+    )
+
+
+def patch_calendar(config_text: str, calendar: list) -> str:
+    """
+    Replace the entire CALENDAR block atomically.
+    calendar: list of dicts with keys: date, event, crit (where crit is bool)
+    """
+    lines = []
+    for c in calendar:
+        crit_val = "True" if c.get("crit") else "False"
+        line = (
+            "    {\n"
+            f'        "date": {json.dumps(c.get("date", ""))},\n'
+            f'        "event": {json.dumps(c.get("event", ""))},\n'
+            f'        "crit": {crit_val},\n'
+            "    },"
+        )
+        lines.append(line)
+
+    new_block = "CALENDAR = [\n" + "\n".join(lines) + "\n]"
+    pattern = r'CALENDAR\s*=\s*\[.*?\]'
+    # Use lambda to avoid backslash interpretation issues in re.sub
+    result = re.sub(pattern, lambda m: new_block, config_text, flags=re.DOTALL)
+    if result == config_text:
+        result = config_text.rstrip() + '\n\n' + new_block + '\n'
+    return result
+
+
 # ── INTERNAL ──────────────────────────────────────────────────────────────────
 
 def _headers(token: str) -> dict:

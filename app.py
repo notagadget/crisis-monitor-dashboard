@@ -31,7 +31,8 @@ from components import (
 from kalshi import fetch_kalshi_markets, fetch_polymarket_odds, format_markets_for_prompt
 from github_state import (
     get_config_sha, commit_config,
-    patch_day_summary, patch_signal_defaults, patch_last_updated
+    patch_day_summary, patch_signal_defaults, patch_last_updated,
+    patch_waiting_list, patch_deadline_iso, patch_calendar
 )
 
 #from analysis import _sign
@@ -65,6 +66,8 @@ if "sync_result" not in st.session_state:
     st.session_state.sync_result = None
 if "sync_approved_signals" not in st.session_state:
     st.session_state.sync_approved_signals = {}
+if "sync_approved_wl" not in st.session_state:
+    st.session_state.sync_approved_wl = {}
 if "sync_committed" not in st.session_state:
     st.session_state.sync_committed = False
 if "markets_str" not in st.session_state:
@@ -211,6 +214,10 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 st.session_state.sync_approved_signals = {
                     sid: True for sid in sr.get("signal_suggestions", {})
                 }
+                # Pre-approve all waiting list suggestions
+                st.session_state.sync_approved_wl = {
+                    w.get("ticker"): True for w in sr.get("waiting_list_suggestions", [])
+                }
                 # Auto-populate the main AI brief panel so it's ready immediately
                 if sr.get("ai_brief"):
                     st.session_state.ai_output = sr["ai_brief"]
@@ -324,16 +331,60 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         # ── WAITING LIST SUGGESTIONS ──────────────────────────────────────────
         wl_sugg = sr.get("waiting_list_suggestions", [])
         if wl_sugg:
-            st.markdown("**📋 Waiting List Notes** *(informational — edit config.py to change)*")
+            st.markdown("**📋 Waiting List Updates** *(check to approve each)*")
             for w in wl_sugg:
+                ticker = w.get("ticker")
+                suggested_status = w.get("suggested_status", "?")
+                suggested_when = w.get("suggested_when", "")
+                reason = w.get("reason", "")
+                # Find current status from WAITING_LIST
+                current_status = "—"
+                for wl_item in WAITING_LIST:
+                    if wl_item["ticker"] == ticker:
+                        current_status = wl_item.get("status", "—")
+                        break
+                approved = st.session_state.sync_approved_wl.get(ticker, True)
+                col_a, col_b = st.columns([1, 8])
+                with col_a:
+                    checked = st.checkbox("", value=approved, key=f"approve_wl_{ticker}")
+                    st.session_state.sync_approved_wl[ticker] = checked
+                with col_b:
+                    st.markdown(
+                        f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;padding:6px 0;">'
+                        f'<b>{ticker}</b>: {current_status} → {suggested_status.upper()}'
+                        f'{f" ({suggested_when})" if suggested_when else ""}<br>'
+                        f'<span style="color:#5a6880;">{reason}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── DEADLINE/CALENDAR REVIEW UI ───────────────────────────────────────
+        dl_ext = sr.get("deadline_extension")
+        cal_upd = sr.get("calendar_updates")
+        if dl_ext or cal_upd:
+            st.markdown("**📅 Deadline & Calendar Updates** *(informational — check details below)*")
+            if dl_ext:
+                from datetime import datetime as dt
+                dl_dt = dt.fromisoformat(dl_ext)
                 st.markdown(
                     f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;'
-                    f'color:#2a3848;padding:4px 0;">'
-                    f'<b>{w.get("ticker")}</b> → {w.get("suggested_status","?").upper()} · '
-                    f'<span style="color:#5a6880;">{w.get("reason","")}</span>'
+                    f'color:#b86800;padding:6px 0;font-weight:600;">'
+                    f'Ceasefire deadline extended to: {dl_dt.strftime("%B %-d, %Y at %-I:%M %p")} ET'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
+            if cal_upd:
+                st.markdown("Calendar events to add/update:")
+                for cal in cal_upd:
+                    crit_label = "🔴 CRITICAL" if cal.get("crit") else "⚪"
+                    st.markdown(
+                        f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;'
+                        f'color:#2a3848;padding:4px 0;">'
+                        f'{crit_label} <b>{cal.get("date")}</b>: {cal.get("event")}'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
             st.markdown("<br>", unsafe_allow_html=True)
 
         # ── PREDICTION MARKETS RAW ────────────────────────────────────────────
@@ -369,6 +420,30 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                         if sp:
                             from github_state import patch_scenario_probabilities
                             config_text = patch_scenario_probabilities(config_text, sp)
+
+                        # Patch waiting list if any approved suggestions
+                        wl_sugg = sr.get("waiting_list_suggestions", [])
+                        approved_wl = st.session_state.get("sync_approved_wl", {})
+                        if any(approved_wl.values()):
+                            # Build merged waiting list: start from live WAITING_LIST, apply approved changes
+                            wl_map = {w["ticker"]: dict(w) for w in WAITING_LIST}
+                            for w in wl_sugg:
+                                if approved_wl.get(w["ticker"]):
+                                    if w["ticker"] in wl_map:
+                                        wl_map[w["ticker"]]["status"] = w.get("suggested_status", wl_map[w["ticker"]]["status"])
+                                        if w.get("suggested_when"):
+                                            wl_map[w["ticker"]]["when"] = w["suggested_when"]
+                            config_text = patch_waiting_list(config_text, list(wl_map.values()))
+
+                        # Patch deadline if extended
+                        dl = sr.get("deadline_extension")
+                        if dl:
+                            config_text = patch_deadline_iso(config_text, dl)
+
+                        # Patch calendar if updated
+                        cal = sr.get("calendar_updates")
+                        if cal:
+                            config_text = patch_calendar(config_text, cal)
 
                         try:
                             compile(config_text, "config.py", "exec")

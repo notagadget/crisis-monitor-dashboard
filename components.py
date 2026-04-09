@@ -159,8 +159,10 @@ def day_summary_html() -> str:
 
 
 def scenario_bar_html(countdown: str) -> str:
+    # Sort scenarios by probability descending
+    scenarios = sorted(SCENARIOS, key=lambda s: int(s["pct"].rstrip("%")), reverse=True)
     items = ""
-    for sc in SCENARIOS:
+    for sc in scenarios:
         cls = " active" if sc["active"] else ""
         items += (
             f'<div class="sc-item{cls}">'
