@@ -5,7 +5,7 @@ No data fetching or business logic here.
 """
 
 from config import (
-    APP_VERSION, JETS_PUT, SCENARIOS, WAITING_LIST, CALENDAR, DAY_SUMMARY, DRY_POWDER, POSITIONS,
+    APP_VERSION, SCENARIOS, WAITING_LIST, CALENDAR, DAY_SUMMARY, DRY_POWDER, POSITIONS,
     LAST_UPDATED,
 )
 
@@ -199,30 +199,36 @@ def equity_card_html(ticker: str, price: float, pnl: float) -> str:
     )
 
 
-def jets_card_html(underlying: float, option_price: float | None,
-                   pnl: float | None, pct: float | None,
-                   option_source: str | None = None) -> str:
+def option_card_html(opt: dict, underlying: float, option_price: float | None,
+                     pnl: float | None, pct: float | None,
+                     option_source: str | None = None) -> str:
+    """Generic option position card. opt is a dict from OPTIONS_POSITIONS."""
     source_tag = f" ({option_source})" if option_source and option_source != "last" else ""
     opt_str  = f"${option_price:.2f}{source_tag}" if option_price else "N/A"
     pnl_str  = f"{_sign(pnl or 0)}${(pnl or 0):,.2f}" if pnl is not None else "N/A"
     pct_str  = f"{_sign(pct or 0)}{(pct or 0):.1f}%" if pct is not None else ""
     bg, fg   = _pnl_style(pnl or -1)
     from datetime import date as _date
-    _exp = _date(*[int(x) for x in JETS_PUT["expiry_date"].split("-")])
+    _exp = _date(*[int(x) for x in opt["expiry_date"].split("-")])
     days_left = (_exp - _date.today()).days
+    label = opt.get("label", f"{opt['underlying']} {opt.get('option_type', 'option')}s")
+    stop_html = (
+        f'<span class="stop-badge watch" style="margin-top:6px;">'
+        f'Stop: {opt["underlying"]} above ${opt["stop_underlying"]}</span>'
+        if opt.get("stop_underlying") else ""
+    )
     return (
-        f'<div class="pos-card opts warn">'
-        f'<div class="pos-ticker">JETS puts</div>'
-        f'<div class="pos-type">{JETS_PUT["contracts"]}× ${JETS_PUT["strike"]} '
-        f'{JETS_PUT["expiry_label"]} · {days_left}d</div>'
-        f'<div class="pos-entry">Paid ${JETS_PUT["premium_paid"]:.2f} · now {opt_str}</div>'
+        f'<div class="pos-card opts">'
+        f'<div class="pos-ticker">{label}</div>'
+        f'<div class="pos-type">{opt["contracts"]}× ${opt["strike"]} '
+        f'{opt["expiry_label"]} · {days_left}d</div>'
+        f'<div class="pos-entry">Paid ${opt["premium_paid"]:.2f} · now {opt_str}</div>'
         f'<div class="pos-price">${underlying:.2f} '
         f'<span style="font-size:10px;color:#5a6880;">underlying</span></div>'
         f'<div style="margin-top:4px;font-family:JetBrains Mono,monospace;font-size:11px;'
         f'padding:2px 8px;border-radius:3px;display:inline-block;background:{bg};color:{fg};">'
         f'{pnl_str} &nbsp;{pct_str}</div><br>'
-        f'<span class="stop-badge watch" style="margin-top:6px;">'
-        f'Stop: JETS above ${JETS_PUT["stop_underlying"]}</span>'
+        f'{stop_html}'
         f'</div>'
     )
 
@@ -261,23 +267,30 @@ def legacy_card_html(ticker: str, price: float, pnl: float) -> str:
     )
 
 
-def thesis_bucket_html(equity_rows: dict, jets_pnl: float | None, total: float) -> str:
-    rows = "".join(
+def thesis_bucket_html(equity_rows: dict, options_rows: list, total: float) -> str:
+    """
+    equity_rows: {ticker: pnl}
+    options_rows: [{"label": str, "pnl": float|None}, ...]
+    """
+    eq_html = "".join(
         f'<div class="bucket-row"><span>{t} {POSITIONS[t]["shares"]}sh</span>'
         f'<span style="color:{"#3dd880" if v>=0 else "#ff6070"};">'
         f'{_sign(v)}${v:,.2f}</span></div>'
         for t, v in equity_rows.items()
     )
-    jets_str = f"${jets_pnl:,.2f}" if jets_pnl is not None else "N/A"
-    jets_color = "#ff6070" if (jets_pnl or 0) < 0 else "#3dd880"
+    opts_html = "".join(
+        f'<div class="bucket-row"><span>{r["label"]}</span>'
+        f'<span style="color:{"#3dd880" if (r["pnl"] or 0)>=0 else "#ff6070"};">'
+        f'{_sign(r["pnl"] or 0)}${(r["pnl"] or 0):,.2f}</span></div>'
+        for r in options_rows
+    )
     total_color = "#ff6070" if total < 0 else "#3dd880"
     return (
         f'<div class="bucket-thesis">'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:1px;'
         f'text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:8px;">Thesis P&L — Active Trade</div>'
-        f'{rows}'
-        f'<div class="bucket-row"><span>JETS puts</span>'
-        f'<span style="color:{jets_color};">{jets_str}</span></div>'
+        f'{eq_html}'
+        f'{opts_html}'
         f'<div class="bucket-total" style="border-top:1px solid rgba(255,255,255,0.12);color:#fff;">'
         f'<span>Thesis Total</span><span style="color:{total_color};">{_sign(total)}${total:,.0f}</span></div>'
         f'<div style="font-family:IBM Plex Sans,sans-serif;font-size:10px;color:rgba(255,255,255,0.5);'

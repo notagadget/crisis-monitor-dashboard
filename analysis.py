@@ -5,7 +5,7 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 
 import re
 from datetime import date, datetime
-from config import POSITIONS, JETS_PUT, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO
+from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
@@ -16,31 +16,30 @@ def calc_pnl(ticker: str, current_price: float) -> float:
     return (current_price - p["entry"]) * p["shares"]
 
 
-def calc_option_pnl(option_price: float | None) -> tuple[float | None, float | None]:
+def calc_option_pnl(opt: dict, option_price: float | None) -> tuple[float | None, float | None]:
     """
-    Returns (dollar_pnl, pct_pnl) for the JETS put position.
+    Returns (dollar_pnl, pct_pnl) for an options position dict.
     Returns (None, None) if option_price is unavailable.
     """
     if option_price is None:
         return None, None
-    basis = JETS_PUT["premium_paid"] * JETS_PUT["contracts"] * 100
-    cur_val = option_price * JETS_PUT["contracts"] * 100
+    basis   = opt["premium_paid"] * opt["contracts"] * 100
+    cur_val = option_price       * opt["contracts"] * 100
     pnl = cur_val - basis
     pct = (pnl / basis) * 100
     return pnl, pct
 
 
-def thesis_totals(prices: dict, jets_pnl: float | None) -> dict:
-    """Aggregate thesis P&L across all thesis equity positions + JETS puts."""
+def thesis_totals(prices: dict, options_pnl_total: float = 0.0) -> dict:
+    """Aggregate thesis P&L across all thesis equity positions + active options."""
     equity_pnls = {t: calc_pnl(t, prices.get(t, POSITIONS[t]["entry"]))
                    for t, p in POSITIONS.items() if p["thesis"]}
     equity_total = sum(equity_pnls.values())
-    jets = jets_pnl or 0.0
     return {
         "equity_rows": equity_pnls,
         "equity_total": equity_total,
-        "jets_pnl": jets,
-        "total": equity_total + jets,
+        "options_pnl": options_pnl_total,
+        "total": equity_total + options_pnl_total,
     }
 
 
@@ -50,17 +49,18 @@ def legacy_totals(prices: dict) -> dict:
             for t, p in POSITIONS.items() if not p["thesis"]}
     return {"rows": rows, "total": sum(rows.values())}
 
-def capital_summary(prices: dict, jets_option_price: float | None, thesis: dict) -> dict:
+
+def capital_summary(prices: dict, options_cost: float, thesis: dict) -> dict:
     """
-    Returns total capital deployed across thesis positions and overall % P&L.
+    Returns total capital deployed across thesis equity + active options, and overall % P&L.
     Excludes legacy holds and dry powder.
+    options_cost: sum of premium_paid * contracts * 100 for all active options.
     """
     equity_cost = sum(
         POSITIONS[t]["entry"] * POSITIONS[t]["shares"]
         for t in POSITIONS if POSITIONS[t]["thesis"]
     )
-    jets_cost = JETS_PUT["premium_paid"] * JETS_PUT["contracts"] * 100
-    total_deployed = equity_cost + jets_cost
+    total_deployed = equity_cost + options_cost
     total_pnl = thesis["total"]
     pct = (total_pnl / total_deployed) * 100 if total_deployed else 0
     return {
@@ -97,12 +97,12 @@ def score_signals(signals: dict) -> dict:
 
 # ── DAILY ANALYSIS PROMPT ─────────────────────────────────────────────────────
 
-def build_prompt(prices: dict, jets_option_price: float | None,
-                 signals: dict, markets_str: str = "",
-                 jets_option_source: str | None = None) -> str:
+def build_prompt(prices: dict, signals: dict, markets_str: str = "",
+                 options_results: list | None = None) -> str:
     """
     Build the Claude analysis prompt from live data.
     markets_str: formatted prediction market string from kalshi.format_markets_for_prompt()
+    options_results: list of active option position dicts with price/pnl (from app.py)
     """
     sig_ctx = "\n".join(
         f"{i+1}. {SIGNAL_NAMES[sid]}: "
@@ -110,9 +110,17 @@ def build_prompt(prices: dict, jets_option_price: float | None,
         for i, sid in enumerate(SIGNAL_NAMES)
     )
 
-    jets_underlying = prices.get("JETS", "N/A")
-    _src = f" ({jets_option_source})" if jets_option_source and jets_option_source != "last" else ""
-    jets_opt_str = f"${jets_option_price:.2f}{_src}" if jets_option_price else "N/A (market closed)"
+    if options_results:
+        opts_lines = "\n".join(
+            f"- {r['opt'].get('label', r['opt']['underlying'] + ' option')}: "
+            f"${r['price']:.2f}" if r.get("price") else
+            f"- {r['opt'].get('label', r['opt']['underlying'] + ' option')}: N/A"
+            for r in options_results
+        )
+        opts_section = f"ACTIVE OPTIONS:\n{opts_lines}"
+    else:
+        opts_section = ("OPTIONS: None currently active. "
+                        "JETS puts closed Apr 8 at $0.55 (entry $1.72) — realized loss ~−$1,170.")
 
     wait_str = " · ".join(
         f"{w['ticker']} ({w['when'].lower()})" for w in WAITING_LIST
@@ -124,8 +132,8 @@ def build_prompt(prices: dict, jets_option_price: float | None,
 
 THESIS STATUS: PAUSED — Ceasefire announced April 8. All positions exited.
 No active thesis equity positions.
-JETS puts (10× $23 Jun18): CLOSED at $0.55 (entry $1.72) — realized loss ~−$1,170.
-Net thesis P&L: ~−$1,070 (equities +$100, JETS puts −$1,170).
+{opts_section}
+Net thesis P&L: ~−$1,070 (equities +$100, options −$1,170).
 Dry powder: ~$16,500 (fully available — all exits roughly break-even net).
 Re-entry criteria: ceasefire breakdown or negotiations stall with 2+ signals clearing.
 
@@ -150,9 +158,8 @@ Respond with exactly 5 sections, under 70 words each:
 
 # ── MORNING SYNC PROMPT (MERGED) ──────────────────────────────────────────────
 
-def build_sync_prompt(prices: dict, jets_option_price: float | None,
-                      current_signals: dict, markets_str: str,
-                      jets_option_source: str | None = None) -> str:
+def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
+                      options_results: list | None = None) -> str:
     """
     Combined morning sync prompt: Claude returns structured JSON with
     config patches AND a full intelligence brief + updated scenario probabilities.
@@ -168,8 +175,15 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
       - key_insight: str (1 sentence)
     """
     today = date.today().strftime("%B %d, %Y")
-    _src = f" ({jets_option_source})" if jets_option_source and jets_option_source != "last" else ""
-    jets_str = f"${jets_option_price:.2f}{_src}" if jets_option_price else "market closed"
+
+    if options_results:
+        opts_section = "Active options:\n" + "\n".join(
+            f"- {r['opt'].get('label', r['opt']['underlying'] + ' option')}: "
+            + (f"${r['price']:.2f}" if r.get("price") else "N/A")
+            for r in options_results
+        )
+    else:
+        opts_section = "Options: None currently active. JETS puts closed Apr 8 at 0.55 (entry 1.72) — realized loss approximately -1170."
 
     sig_ctx = "\n".join(
         f'  "{sid}": {{"current": {current_signals[sid]}, '
@@ -193,8 +207,8 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
 
     THESIS STATUS: PAUSED — Ceasefire announced April 8. All positions exited.
     No active thesis equity positions.
-    JETS puts (10x $23 Jun18): CLOSED at 0.55 (entry 1.72) — realized loss approximately -1170.
-    Net thesis P&L: approximately -1070 (equities +100, JETS puts -1170).
+    {opts_section}
+    Net thesis P&L: approximately -1070 (equities +100, options -1170).
     Legacy holds: GLD: {px('GLD')} (entry {POSITIONS['GLD']['entry']}) | VTV: {px('VTV')} (entry {POSITIONS['VTV']['entry']})
     Dry powder: approximately 16500 (fully available — all exits roughly break-even net)
     Re-entry criteria: ceasefire breakdown or negotiations stall with 2+ signals clearing.

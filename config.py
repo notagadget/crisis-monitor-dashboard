@@ -15,21 +15,30 @@ POSITIONS = {
     "VTV":  {"shares": 10,  "entry": 194.16, "stop": None,   "type": "Equity", "thesis": False},
 }
 
-# Options position — one structured dict keeps all option math in one place
-JETS_PUT = {
-    "contracts":         10,
-    "strike":            23,
-    "expiry_label":      "Jun 18 2026",
-    "expiry_date":       "2026-06-18",      # yfinance chain date
-    "option_symbol":     "JETS260618P00023000",
-    "premium_paid":      1.72,              # per share
-    "stop_underlying":   27.00,             # exit if JETS closes above this
-    "underlying":        "JETS",
-    "active":            False,             # closed Apr 8 at $0.55 — realized loss ~−$1,170
-}
+# Options positions — list of active option positions (add/remove dicts here)
+# Each dict must include: label, contracts, strike, expiry_label, expiry_date,
+# option_symbol, premium_paid, underlying, option_type ("put"|"call"), active
+# Optional: stop_underlying
+OPTIONS_POSITIONS = [
+    # Example (currently empty — JETS puts closed Apr 8):
+    # {
+    #     "label":           "JETS puts",
+    #     "contracts":       10,
+    #     "strike":          23,
+    #     "expiry_label":    "Jun 18 2026",
+    #     "expiry_date":     "2026-06-18",
+    #     "option_symbol":   "JETS260618P00023000",
+    #     "premium_paid":    1.72,
+    #     "stop_underlying": 27.00,
+    #     "underlying":      "JETS",       # also add to PRICE_TICKERS if new
+    #     "option_type":     "put",
+    #     "active":          True,
+    # }
+]
 
 # Tickers to fetch from yfinance (underlying prices only)
-PRICE_TICKERS = ["GLD", "VTV", "JETS", "XOM", "CVX", "APD", "USO", "MOS", "CF"]
+# Add option underlyings here when entering new options positions
+PRICE_TICKERS = ["GLD", "VTV", "XOM", "CVX", "APD", "USO", "MOS", "CF"]
 
 # Cash / dry powder (update manually when deployed)
 DRY_POWDER = 16_500
@@ -116,7 +125,6 @@ CALENDAR = [
     {"date": "Apr 22", "event": "Ceasefire expires — re-evaluate thesis",               "crit": True},
     {"date": "Apr 28", "event": "RTX earnings (before open)",                            "crit": False},
     {"date": "Apr 30", "event": "LIN earnings",                                          "crit": False},
-    {"date": "Jun 18", "event": "JETS puts expiry",                                      "crit": False},
 ]
 
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────

@@ -12,10 +12,10 @@ import streamlit as st
 import anthropic
 
 from config import (
-    POSITIONS, JETS_PUT, SIGNAL_NAMES, SIGNAL_DESC,
+    POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC,
     SIGNAL_DEFAULTS, WAITING_LIST, DRY_POWDER,
 )
-from data import fetch_prices, fetch_option_price, countdown_to_deadline
+from data import fetch_prices, fetch_option_prices, countdown_to_deadline
 from analysis import (
     calc_pnl, calc_option_pnl, thesis_totals, legacy_totals,
     score_signals, build_prompt, build_sync_prompt, render_ai_html,
@@ -23,7 +23,7 @@ from analysis import (
 )
 from components import (
     CSS, header_html, day_summary_html, scenario_bar_html,
-    equity_card_html, jets_card_html, cash_card_html,
+    equity_card_html, option_card_html, cash_card_html,
     legacy_card_html, thesis_bucket_html, legacy_bucket_html,
     wait_card_html, calendar_html, score_box_html,
     prediction_markets_html,
@@ -71,21 +71,33 @@ if "markets_str" not in st.session_state:
     st.session_state.markets_str = ""
 
 # ── LIVE DATA ─────────────────────────────────────────────────────────────────
-prices              = fetch_prices()
-_opt_result         = fetch_option_price()
-if not isinstance(_opt_result, dict):
-    # Stale cache from prior code version returned float|None — clear and refetch
-    fetch_option_price.clear()
-    _opt_result = fetch_option_price()
-option_price        = _opt_result["price"]
-option_source       = _opt_result["source"]
-if option_price is None:
-    fetch_option_price.clear()
-opt_pnl, opt_pct    = calc_option_pnl(option_price)
-thesis              = thesis_totals(prices, opt_pnl)
-legacy              = legacy_totals(prices)
-score               = score_signals(st.session_state.signals)
-cap                 = capital_summary(prices, option_price, thesis)
+prices       = fetch_prices()
+option_data  = fetch_option_prices()
+
+# Build per-option results (pnl, price, source) for all active options
+options_results = []
+for opt in OPTIONS_POSITIONS:
+    if not opt.get("active"):
+        continue
+    od  = option_data.get(opt["option_symbol"], {"price": None, "source": None})
+    pnl, pct = calc_option_pnl(opt, od["price"])
+    options_results.append({
+        "opt":    opt,
+        "price":  od["price"],
+        "source": od["source"],
+        "pnl":    pnl,
+        "pct":    pct,
+    })
+
+options_pnl_total = sum(r["pnl"] or 0 for r in options_results)
+options_cost      = sum(
+    o["premium_paid"] * o["contracts"] * 100
+    for o in OPTIONS_POSITIONS if o.get("active")
+)
+thesis = thesis_totals(prices, options_pnl_total)
+legacy = legacy_totals(prices)
+score  = score_signals(st.session_state.signals)
+cap    = capital_summary(prices, options_cost, thesis)
 
 # ── LIVE PREDICTION MARKETS ──────────────────────────────────────────────────
 kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else []
@@ -177,10 +189,10 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                     messages=[{
                         "role": "user",
                         "content": build_sync_prompt(
-                            prices, option_price,
+                            prices,
                             st.session_state.signals,
                             markets_str,
-                            jets_option_source=option_source,
+                            options_results=options_results,
                         ),
                     }],
                 )
@@ -407,10 +419,10 @@ with col_ai:
                         messages=[{
                             "role": "user",
                             "content": build_prompt(
-                                prices, option_price,
+                                prices,
                                 st.session_state.signals,
                                 st.session_state.markets_str,
-                                jets_option_source=option_source,
+                                options_results=options_results,
                             ),
                         }],
                     )
@@ -455,20 +467,30 @@ with col_sig:
 
 # ── POSITIONS ─────────────────────────────────────────────────────────────────
 st.markdown('<br>', unsafe_allow_html=True)
-thesis_tickers = [t for t, p in POSITIONS.items() if p["thesis"]]
-pcols = st.columns(6)
+thesis_tickers  = [t for t, p in POSITIONS.items() if p["thesis"]]
+n_pos           = len(thesis_tickers) + len(options_results) + 1  # +1 for cash card
+# Left-justify: give each position card 1 unit, pad right with remaining space
+padding = max(6 - n_pos, 0)
+col_spec = [1] * n_pos + ([padding] if padding > 0 else [])
+pcols = st.columns(col_spec)
 
-for i, ticker in enumerate(thesis_tickers[:4]):
+col_i = 0
+for ticker in thesis_tickers:
     price = prices.get(ticker, POSITIONS[ticker]["entry"])
     pnl   = calc_pnl(ticker, price)
-    with pcols[i]:
+    with pcols[col_i]:
         st.markdown(equity_card_html(ticker, price, pnl), unsafe_allow_html=True)
+    col_i += 1
 
-with pcols[4]:
-    jets_price = prices.get("JETS", JETS_PUT.get("stop_underlying", 25.0))
-    st.markdown(jets_card_html(jets_price, option_price, opt_pnl, opt_pct, option_source), unsafe_allow_html=True)
+for r in options_results:
+    underlying_price = prices.get(r["opt"]["underlying"], 0.0)
+    with pcols[col_i]:
+        st.markdown(option_card_html(
+            r["opt"], underlying_price, r["price"], r["pnl"], r["pct"], r["source"]
+        ), unsafe_allow_html=True)
+    col_i += 1
 
-with pcols[5]:
+with pcols[col_i]:
     st.markdown(cash_card_html(), unsafe_allow_html=True)
 
 st.markdown(
@@ -487,7 +509,11 @@ for col, ticker in [(lc1, "GLD"), (lc2, "VTV")]:
 
 buck1, buck2 = st.columns(2)
 with buck1:
-    st.markdown(thesis_bucket_html(thesis["equity_rows"], thesis["jets_pnl"], thesis["total"]), unsafe_allow_html=True)
+    opts_bucket_rows = [
+        {"label": r["opt"].get("label", r["opt"]["underlying"] + " option"), "pnl": r["pnl"]}
+        for r in options_results
+    ]
+    st.markdown(thesis_bucket_html(thesis["equity_rows"], opts_bucket_rows, thesis["total"]), unsafe_allow_html=True)
 with buck2:
     st.markdown(legacy_bucket_html(legacy["rows"], legacy["total"]), unsafe_allow_html=True)
 

@@ -9,7 +9,7 @@ import pytz
 import streamlit as st
 import yfinance as yf
 
-from config import PRICE_TICKERS, JETS_PUT, DEADLINE_ISO, DEADLINE_TZ
+from config import PRICE_TICKERS, OPTIONS_POSITIONS, DEADLINE_ISO, DEADLINE_TZ
 
 
 @st.cache_data(ttl=300)
@@ -31,34 +31,43 @@ def fetch_prices() -> dict[str, float]:
 
 
 @st.cache_data(ttl=300)
-def fetch_option_price() -> dict:
+def fetch_option_prices() -> dict:
     """
-    Fetch the JETS put price from config.JETS_PUT.
-    Returns {"price": float|None, "source": "last"|"mid"|"bid"|None}.
+    Fetch live prices for all active options in OPTIONS_POSITIONS.
+    Returns {option_symbol: {"price": float|None, "source": str|None}}.
     Tries lastPrice first, then bid/ask midpoint, then bid alone.
     """
-    try:
-        tk = yf.Ticker(JETS_PUT["underlying"])
-        chain = tk.option_chain(JETS_PUT["expiry_date"])
-        puts = chain.puts
-        row = puts[puts["strike"] == float(JETS_PUT["strike"])]
-        if not row.empty:
-            r = row.iloc[0]
-            def _safe(key):
-                v = float(r.get(key, 0) or 0)
-                return v if not math.isnan(v) else 0.0
-            last = _safe("lastPrice")
-            bid = _safe("bid")
-            ask = _safe("ask")
-            if last > 0:
-                return {"price": last, "source": "last"}
-            if bid > 0 and ask > 0:
-                return {"price": round((bid + ask) / 2, 4), "source": "mid"}
-            if bid > 0:
-                return {"price": bid, "source": "bid"}
-    except Exception:
-        pass
-    return {"price": None, "source": None}
+    results = {}
+    for opt in OPTIONS_POSITIONS:
+        if not opt.get("active"):
+            continue
+        symbol = opt["option_symbol"]
+        try:
+            tk = yf.Ticker(opt["underlying"])
+            chain = tk.option_chain(opt["expiry_date"])
+            df = chain.puts if opt.get("option_type", "put") == "put" else chain.calls
+            row = df[df["strike"] == float(opt["strike"])]
+            if not row.empty:
+                r = row.iloc[0]
+                def _safe(key):
+                    v = float(r.get(key, 0) or 0)
+                    return v if not math.isnan(v) else 0.0
+                last = _safe("lastPrice")
+                bid  = _safe("bid")
+                ask  = _safe("ask")
+                if last > 0:
+                    results[symbol] = {"price": last, "source": "last"}
+                    continue
+                if bid > 0 and ask > 0:
+                    results[symbol] = {"price": round((bid + ask) / 2, 4), "source": "mid"}
+                    continue
+                if bid > 0:
+                    results[symbol] = {"price": bid, "source": "bid"}
+                    continue
+        except Exception:
+            pass
+        results[symbol] = {"price": None, "source": None}
+    return results
 
 
 def countdown_to_deadline() -> str:
