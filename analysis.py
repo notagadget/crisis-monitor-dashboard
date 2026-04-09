@@ -5,7 +5,7 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 
 import re
 from datetime import date, datetime
-from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY, THESIS_PAUSED, SCENARIOS
+from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, SIGNAL_CLEAR, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY, THESIS_PAUSED, SCENARIOS
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
@@ -123,6 +123,7 @@ def build_prompt(prices: dict, signals: dict, markets_str: str = "",
     sig_list = "\n".join(
         f"{i+1}. {SIGNAL_NAMES[sid]}: "
         f"{'TRIGGERED' if signals[sid] == 2 else 'CAUTION' if signals[sid] == 1 else 'CLEAR'}"
+        f" | Clear when: {SIGNAL_CLEAR[sid]}"
         for i, sid in enumerate(SIGNAL_NAMES)
     )
 
@@ -219,8 +220,19 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
 
     sig_list = "\n".join(
         f'  "{sid}": {{"current": {current_signals[sid]}, '
-        f'"name": "{SIGNAL_NAMES[sid]}", "desc": "{SIGNAL_DESC[sid]}"}}'
+        f'"name": "{SIGNAL_NAMES[sid]}", '
+        f'"desc": "{SIGNAL_DESC[sid]}", '
+        f'"clear_condition": "{SIGNAL_CLEAR[sid]}"}}'
         for sid in SIGNAL_NAMES
+    )
+    sig_list += (
+        "\n\nSIGNAL DIRECTION NOTE: Signals s3, s4, s8 are TRIGGERED because "
+        "the ceasefire was declared — they are EXIT signals that fired correctly. "
+        "Do NOT describe them as 'preventing re-entry'. "
+        "Re-entry watch means monitoring for these to CLEAR (ceasefire breakdown "
+        "clears s4/s8; diplomatic deterioration clears s3). "
+        "In the SIGNAL ASSESSMENT section, describe each triggered signal's "
+        "clear condition, not its trigger reason."
     )
 
     thesis_status_line = "THESIS STATUS: PAUSED — signals read as re-entry indicators (want TRIGGERED to clear)" if THESIS_PAUSED else ""

@@ -3,7 +3,7 @@ config.py — static constants only. Edit this file to update positions,
 signals, waiting list entries, or calendar events. No logic here.
 """
 # App Version Number
-APP_VERSION = "v0.91"
+APP_VERSION = "v0.92"
 LAST_UPDATED = "April 9, 2026"  # update manually or via Morning Sync
 
 # Re-entry Signal Mode
@@ -79,6 +79,17 @@ SIGNAL_DESC = {
     "s6": "SPR release ongoing. No drawdown slowdown observed.",
     "s7": "Energy bull thesis unwinding with ceasefire — crowding risk resolved with exit.",
     "s8": "TRIGGERED: Ceasefire declared April 8 — resolution equivalent per exit rule.",
+}
+
+SIGNAL_CLEAR = {
+    "s1": "War risk premiums rise again — shipping insurance spiking post-ceasefire breakdown.",
+    "s2": "Oil curve re-steepens into backwardation on renewed supply disruption.",
+    "s3": "Diplomatic channel breaks down; Xi-Trump back-channel goes silent or hostile.",
+    "s4": "Pragmatist faction loses influence; hardliners publicly reject ceasefire terms or reparations framework.",
+    "s5": "Ras Laffan declares force majeure lifted; LNG/helium routes confirmed open.",
+    "s6": "SPR drawdown slows or halts; IEA release ends.",
+    "s7": "Energy bull thesis re-emerges in financial media; crowding risk returns.",
+    "s8": "Trump posts escalation language or declares ceasefire failed; no extension announced.",
 }
 
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
