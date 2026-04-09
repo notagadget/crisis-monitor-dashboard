@@ -43,7 +43,7 @@ OPTIONS_POSITIONS = [
 PRICE_TICKERS = ["GLD", "VTV", "XOM", "CVX", "APD", "USO", "MOS", "CF"]
 
 # Cash / dry powder (update manually when deployed)
-DRY_POWDER = 16_500
+DRY_POWDER = 33_601  # E*Trade 13,908 + Fidelity 19,693
 
 # ── EXIT SIGNALS ──────────────────────────────────────────────────────────────
 # Default state: 0=clear, 1=caution, 2=triggered
@@ -169,6 +169,6 @@ CALENDAR = [
 DAY_SUMMARY = {
     "label": "Day 41 - April 09, 2026",
     "body": (
-        "Ceasefire holds Day 2. Thesis remains PAUSED with 4 signals TRIGGERED. Islamabad talks April 12 critical - breakdown would clear re-entry path. Dry powder $16,500 ready. GLD watching for 100-day SMA breakout confirmation."
+        "Ceasefire holds Day 2. Thesis remains PAUSED with 4 signals TRIGGERED. Islamabad talks April 12 critical - breakdown would clear re-entry path. Dry powder $33,601 ready (E*Trade $13,908 + Fidelity $19,693). GLD watching for 100-day SMA breakout confirmation."
     ),
 }
