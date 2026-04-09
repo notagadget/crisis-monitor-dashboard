@@ -7,6 +7,14 @@ import re
 from datetime import date, datetime
 from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, SIGNAL_CLEAR, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY, THESIS_PAUSED, SCENARIOS
 
+# ── ANALYST PRIORS ────────────────────────────────────────────────────────────
+ANALYST_PRIORS = """EPISTEMOLOGICAL PRIORS (apply to all analysis):
+- Prediction markets reflect sentiment and consensus positioning, not ground truth. They lag Iranian internal signals by hours and are subject to herding. Treat as one signal, not probability.
+- US government statements: distinguish negotiating posture from operational reality. Verify claims against observable data (IMF PortWatch, MarineTraffic).
+- Iranian state media (IRNA/Fars): read for revealed preference and factional signals, not factual accuracy. IRGC statements != Pezeshkian government position.
+- Israeli government statements on ceasefire scope: assume maximally expansive framing; actual compliance will be narrower.
+- Ceasefire != resolved. Resolution metric: IMF PortWatch 7-day average above 60 transits. Not diplomatic announcements.
+- When prediction market odds and observable on-the-ground facts diverge, weight observable facts."""
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
 
@@ -148,7 +156,7 @@ def build_prompt(prices: dict, signals: dict, markets_str: str = "",
         f"{w['ticker']} ({w['when'].lower()})" for w in WAITING_LIST
     )
 
-    markets_section = f"\n{markets_str}\n" if markets_str else ""
+    markets_section = f"\n{ANALYST_PRIORS}\n\n{markets_str}\n" if markets_str else f"\n{ANALYST_PRIORS}\n"
 
     return f"""You are a geopolitical crisis trading analyst. Today is {date.today().strftime('%B %d, %Y')}.
 
@@ -259,6 +267,8 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
     Legacy holds: GLD: {px('GLD')} (entry {POSITIONS['GLD']['entry']}) | VTV: {px('VTV')} (entry {POSITIONS['VTV']['entry']})
     Dry powder: approximately 16500 (fully available — all exits roughly break-even net)
     Re-entry criteria: ceasefire breakdown or negotiations stall with 2+ signals clearing.
+
+{ANALYST_PRIORS}
 
 {markets_str}
 
