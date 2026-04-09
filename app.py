@@ -186,6 +186,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 msg = client.messages.create(
                     model="claude-sonnet-4-20250514",
                     max_tokens=2500,   # increased — now includes ai_brief
+                    temperature=0.2,
                     system=(
                         "You are a geopolitical crisis trading analyst. "
                         "Respond ONLY with valid JSON as instructed. No preamble, no markdown."
@@ -491,6 +492,7 @@ with col_ai:
                     msg = client.messages.create(
                         model="claude-sonnet-4-20250514",
                         max_tokens=1000,
+                        temperature=0.2,
                         system="Concise geopolitical crisis trading analyst. Plain text. Direct. Specific tickers and prices.",
                         messages=[{
                             "role": "user",

@@ -5,7 +5,7 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 
 import re
 from datetime import date, datetime
-from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY, THESIS_PAUSED
+from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY, THESIS_PAUSED, SCENARIOS
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
@@ -199,6 +199,11 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
     """
     today = date.today().strftime("%B %d, %Y")
 
+    # Extract scenario probabilities from config
+    current_a = next((s["pct"].rstrip("%") for s in SCENARIOS if "Resolution" in s["name"] and "Partial" not in s["name"]), "45")
+    current_b = next((s["pct"].rstrip("%") for s in SCENARIOS if "Partial" in s["name"]), "40")
+    current_c = next((s["pct"].rstrip("%") for s in SCENARIOS if "Escalation" in s["name"]), "15")
+
     # Extract current day number and auto-increment
     day_match = re.search(r'Day (\d+)', DAY_SUMMARY.get("label", ""))
     next_day = int(day_match.group(1)) + 1 if day_match else "N"
@@ -258,10 +263,13 @@ Thesis paused — ceasefire does NOT resolve Iran's reparations demands or uncon
 Thesis can re-activate if ceasefire breaks down after Apr 22 expiry.
 Re-entry requires ceasefire breakdown AND 2+ signals clearing again.
 
-BASELINE SCENARIO PROBABILITIES (update based on latest signals + prediction markets):
-- A (Resolution, ceasefire holds, Hormuz reopens conditionally): currently 45%
-- B (Partial resolution / toll regime, stalled negotiations): currently 40%
-- C (Escalation, ceasefire breaks down after Apr 22, strikes resume): currently 15%
+CURRENT SCENARIO PROBABILITIES (from last committed config):
+- A (Resolution): {current_a}%
+- B (Partial Resolution): {current_b}%
+- C (Escalation): {current_c}%
+Only adjust these if prediction market data provides specific evidence for a shift.
+Maximum change per session: 5 percentage points per scenario without explicit justification.
+Do not change TRIGGERED signals to lower states unless today's data contains concrete new evidence.
 
 AI BRIEF FORMAT — for the ai_brief field, write exactly 5 sections, each under 70 words:
 1. SITUATION UPDATE

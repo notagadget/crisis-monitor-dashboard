@@ -3,7 +3,7 @@ config.py — static constants only. Edit this file to update positions,
 signals, waiting list entries, or calendar events. No logic here.
 """
 # App Version Number
-APP_VERSION = "v0.9"
+APP_VERSION = "v0.91"
 LAST_UPDATED = "April 9, 2026"  # update manually or via Morning Sync
 
 # Re-entry Signal Mode
