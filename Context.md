@@ -73,8 +73,7 @@ Waiting list priority unchanged — XOM/CVX first, then APD, MOS/CF
 - Apr 30 — LIN earnings (no position)
 
 ## Constraints
-- Cannot monitor or act during market hours
-- All entries/exits via pre-set limit orders and stops
+- Cannot always monitor or act quickly during market hours
 - Do not concentrate further in RKLB
 
 ## Tools
