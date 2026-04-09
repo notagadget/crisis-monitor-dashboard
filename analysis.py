@@ -5,7 +5,7 @@ No Streamlit calls, no HTML rendering (that lives in components.py).
 
 import re
 from datetime import date, datetime
-from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO
+from config import POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC, WAITING_LIST, DEADLINE_ISO, DAY_SUMMARY
 
 
 # ── P&L ───────────────────────────────────────────────────────────────────────
