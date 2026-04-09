@@ -172,9 +172,9 @@ def scenario_bar_html(countdown: str) -> str:
     items += (
         f'<div class="sc-item" style="text-align:right;">'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;'
-        f'letter-spacing:.5px;text-transform:uppercase;">Apr 7 Deadline</div>'
+        f'letter-spacing:.5px;text-transform:uppercase;">Apr 22 Ceasefire</div>'
         f'<div style="font-size:20px;font-weight:700;color:#a81828;">{countdown}</div>'
-        f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;">Iran ultimatum · 8pm ET</div>'
+        f'<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#5a6880;">Ceasefire expires · 8pm ET</div>'
         f'</div>'
     )
     return f'<div class="sc-bar">{items}</div>'
@@ -281,7 +281,7 @@ def thesis_bucket_html(equity_rows: dict, jets_pnl: float | None, total: float) 
         f'<div class="bucket-total" style="border-top:1px solid rgba(255,255,255,0.12);color:#fff;">'
         f'<span>Thesis Total</span><span style="color:{total_color};">{_sign(total)}${total:,.0f}</span></div>'
         f'<div style="font-family:IBM Plex Sans,sans-serif;font-size:10px;color:rgba(255,255,255,0.5);'
-        f'margin-top:6px;line-height:1.5;">Equity positions profitable. Thesis needs JETS &lt; $23 to monetize.</div>'
+        f'margin-top:6px;line-height:1.5;">Thesis paused. All positions exited Apr 8. Re-entry on ceasefire breakdown.</div>'
         f'</div>'
     )
 
