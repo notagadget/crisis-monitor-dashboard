@@ -189,7 +189,7 @@ def build_sync_prompt(prices: dict, jets_option_price: float | None,
     return f"""You are a geopolitical crisis trading analyst. Today is {today}.
     Produce a single JSON response combining a morning briefing AND a full intelligence brief.
 
-    IMPORTANT: In your JSON response, do NOT use backslashes except for standard JSON escapes (\", \\, \n, \t). Do not escape dollar signs. Write dollar amounts as plain text, e.g. "$16,500" not "\$16,500".
+    IMPORTANT: In your JSON response, do NOT use backslashes except for standard JSON escapes (\", \\, \n, \t). Do not escape dollar signs. Write dollar amounts as plain text, e.g. "$16,500" not "\\$16,500".
 
     THESIS STATUS: PAUSED — Ceasefire announced April 8. All positions exited.
     No active thesis equity positions.
