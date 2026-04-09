@@ -94,6 +94,7 @@ SCENARIOS = [
 
 DEADLINE_ISO = "2026-04-22T20:00:00"   # ET — ceasefire expiry
 DEADLINE_TZ  = "America/Detroit"
+USER_TZ      = "America/Detroit"       # Your local timezone for timestamps
 
 # ── WAITING LIST ──────────────────────────────────────────────────────────────
 # status options: ready | event | watching | patience

@@ -14,7 +14,7 @@ import anthropic
 
 from config import (
     POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC,
-    SIGNAL_DEFAULTS, WAITING_LIST, DRY_POWDER, THESIS_PAUSED,
+    SIGNAL_DEFAULTS, WAITING_LIST, DRY_POWDER, THESIS_PAUSED, USER_TZ,
 )
 from data import fetch_prices, fetch_option_prices, countdown_to_deadline
 from analysis import (
@@ -223,8 +223,10 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                 # Auto-populate the main AI brief panel so it's ready immediately
                 if sr.get("ai_brief"):
                     st.session_state.ai_output = sr["ai_brief"]
+                    import pytz
                     import datetime
-                    st.session_state.ai_ts = datetime.datetime.now().strftime("%H:%M:%S") + " (Morning Sync)"
+                    tz = pytz.timezone(USER_TZ)
+                    st.session_state.ai_ts = datetime.datetime.now(tz=tz).strftime("%H:%M:%S") + " (Morning Sync)"
             except json.JSONDecodeError as e:
                 st.error(f"Claude returned malformed JSON: {e}\n\nRaw: {raw[:400]}")
             except Exception as e:
@@ -505,8 +507,10 @@ with col_ai:
                         }],
                     )
                     st.session_state.ai_output = msg.content[0].text
+                    import pytz
                     import datetime
-                    st.session_state.ai_ts = datetime.datetime.now().strftime("%H:%M:%S")
+                    tz = pytz.timezone(USER_TZ)
+                    st.session_state.ai_ts = datetime.datetime.now(tz=tz).strftime("%H:%M:%S")
                 except Exception as e:
                     st.error(f"API Error: {e}")
 
