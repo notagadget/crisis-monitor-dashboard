@@ -121,7 +121,6 @@ Re-entry requires: ceasefire breakdown + S3 or S8 downgrade to CAUTION/CLEAR.
 ### Known Issues / Pending Work
 - `analysis.py` prompts reference thesis as active with positions; need update to reflect paused state (DONE in prompts — "THESIS STATUS: PAUSED" already in both build_prompt and build_sync_prompt)
 - Plans file `.claude/plans/floating-churning-summit-agent-affba7ae9c118998f.md` contains 3 pending fixes (all resolved in v0.8 per code state): TTL reduction ✓, option dict return ✓, dynamic dates ✓
-- `build_sync_prompt` still has hardcoded "RE-ENTRY WATCH" section label instead of "POSITION ALERTS" — minor mismatch with `render_ai_html` regex (targets POSITION ALERTS)
 - Ceasefire expiry deadline in `config.py` set to `2026-04-22T20:00:00` — verify this matches official terms
 
 ### Config Patching Rules

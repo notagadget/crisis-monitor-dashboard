@@ -173,7 +173,7 @@ CRITICAL DATES: Ceasefire expires {datetime.fromisoformat(DEADLINE_ISO).strftime
 Respond with exactly 5 sections, under 70 words each:
 1. SITUATION UPDATE
 2. SIGNAL ASSESSMENT
-3. RE-ENTRY WATCH — which signals/events would trigger thesis re-activation
+3. POSITION ALERTS — which signals/events would trigger thesis re-activation
 4. WAITING LIST — which entries move to ready on ceasefire breakdown
 5. KEY RISK before {datetime.fromisoformat(DEADLINE_ISO).strftime("%B %-d")}"""
 
