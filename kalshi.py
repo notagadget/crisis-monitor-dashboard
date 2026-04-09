@@ -35,6 +35,11 @@ MAX_KALSHI = 4
 MAX_POLYMARKET = 4
 
 
+def _kalshi_headers() -> dict:
+    key = st.secrets.get("KALSHI_API_KEY", "")
+    return {"Authorization": f"Bearer {key}"} if key else {}
+
+
 def _extract_price(market: dict) -> float:
     price = market.get("last_price_dollars") or market.get("previous_yes_bid_dollars") or 0
     return float(price)
@@ -47,6 +52,7 @@ def fetch_kalshi_markets() -> list:
         r = requests.get(
             f"{KALSHI_API}/events",
             params={"status": "open", "with_nested_markets": "true", "limit": 100},
+            headers=_kalshi_headers(),
             timeout=10,
         )
         r.raise_for_status()

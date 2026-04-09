@@ -100,7 +100,7 @@ score  = score_signals(st.session_state.signals)
 cap    = capital_summary(prices, options_cost, thesis)
 
 # ── LIVE PREDICTION MARKETS ──────────────────────────────────────────────────
-kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else []
+kalshi_data = fetch_kalshi_markets()
 poly_data   = fetch_polymarket_odds()
 if any(m.get("error") for m in kalshi_data):
     fetch_kalshi_markets.clear()
@@ -166,7 +166,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
         with st.spinner("Fetching prediction markets..."):
             fetch_kalshi_markets.clear()
             fetch_polymarket_odds.clear()
-            kalshi_data = fetch_kalshi_markets() if KALSHI_KEY else []
+            kalshi_data = fetch_kalshi_markets()
             poly_data   = fetch_polymarket_odds()
             if any(m.get("error") for m in kalshi_data):
                 fetch_kalshi_markets.clear()
