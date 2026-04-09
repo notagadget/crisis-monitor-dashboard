@@ -97,7 +97,7 @@ DEADLINE_TZ  = "America/Detroit"
 # status options: ready | event | watching | patience
 WAITING_LIST = [
     {"ticker": "XOM / CVX", "status": "patience", "when": "Post-Ceasefire",
-     "cond": "Ceasefire pause — wait for breakdown or stalled negotiations before entering energy longs.",
+     "cond": "Ceasefire pause — wait for Islamabad talks (Apr 12) outcome before entering energy longs.",
      "alloc": "$3,000"},
     {"ticker": "APD",       "status": "watching", "when": "Ras Laffan Structural",
      "cond": "Ras Laffan LNG/helium still structurally closed. Ceasefire does not reopen helium routes.",
@@ -106,21 +106,20 @@ WAITING_LIST = [
      "cond": "Fertilizer supply disruption persists structurally even under ceasefire. Spring planting watch.",
      "alloc": "$2,000"},
     {"ticker": "USO calls", "status": "patience", "when": "Post-Ceasefire",
-     "cond": "Ceasefire pause — wait for breakdown or vol crush. Do not chase into ceasefire rally.",
+     "cond": "Wait for ceasefire breakdown confirmation. Do not buy vol on ambiguity.",
      "alloc": "$1,000–1,500"},
     {"ticker": "SLB",       "status": "patience", "when": "Post-Ceasefire",
      "cond": "Wait for XOM/CVX drilling capex announcement as trigger. Ceasefire pause.",
      "alloc": "$2,000"},
-    {"ticker": "GLD calls", "status": "patience", "when": "Technical",
-     "cond": "Add calls only on 2 consecutive closes above 100-day SMA.",
+    {"ticker": "GLD calls", "status": "watching", "when": "Technical",
+     "cond": "Add calls on 2 consecutive closes above 100-day SMA. Check Apr 9 close.",
      "alloc": "$1,500"},
 ]
 
 # ── CALENDAR ──────────────────────────────────────────────────────────────────
 CALENDAR = [
-    {"date": "Apr 4",  "event": "Good Friday — market closed · UNSC Hormuz force vote", "crit": False},
-    {"date": "Apr 7",  "event": "EIA Short-Term Energy Outlook",                         "crit": False},
-    {"date": "Apr 10", "event": "CPI report — first post-war inflation read",            "crit": False},
+    {"date": "Apr 10", "event": "CPI report — first post-war inflation read",            "crit": True},
+    {"date": "Apr 12", "event": "Islamabad talks — Vance/Witkoff/Kushner first round",  "crit": True},
     {"date": "Apr 21", "event": "NOC earnings",                                          "crit": False},
     {"date": "Apr 22", "event": "Ceasefire expires — re-evaluate thesis",               "crit": True},
     {"date": "Apr 28", "event": "RTX earnings (before open)",                            "crit": False},
@@ -130,13 +129,12 @@ CALENDAR = [
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 39 — April 8, 2026 — Thesis Paused",
+    "label": "Day 39 — April 8, 2026 — Thesis Paused / Ceasefire Fragile",
     "body": (
-        "Two-week ceasefire announced. All thesis positions exited: JETS puts at $0.55 "
-        "(−$1,170), equities at ~+$100. Net thesis loss ~−$1,070. Three signals now TRIGGERED "
-        "(S3/S4/S8) — exit rule executed correctly. Dry powder intact at ~$16,500. "
-        "Thesis paused, not dead — ceasefire doesn't resolve Iran's reparations demands "
-        "or unconditionally reopen Hormuz. Re-entry criteria: ceasefire breakdown or "
-        "negotiations stall with 2+ signals clearing."
+        "Two-week ceasefire announced but immediately threatened: Iran re-closed Hormuz "
+        "after Israel struck Lebanon (182 killed). US and Iran have conflicting versions of "
+        "the deal (US opposes tolls; Iran wants to formalize them). Islamabad talks Apr 12. "
+        "All thesis positions exited correctly. Net P&L ~−$1,070. Dry powder $16,500 intact. "
+        "Re-entry watch: Apr 12 Islamabad outcome and Apr 22 ceasefire expiry."
     ),
 }
