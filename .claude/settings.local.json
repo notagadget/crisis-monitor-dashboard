@@ -21,7 +21,10 @@
       "Bash(ssh-keygen -t ed25519 -C \"adam@crisis-monitor\" -f ~/.ssh/id_ed25519 -N \"\")",
       "Bash(git remote:*)",
       "Bash(git reset:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('config.py', doraise=True\\); print\\('✓ config.py compiles successfully'\\)\")",
+      "Bash(python3 -c \"import py_compile; [py_compile.compile\\(f, doraise=True\\) for f in ['kalshi.py','app.py','config.py']]; print\\('OK'\\)\")",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('kalshi.py', doraise=True\\); print\\('✓ Syntax check passed'\\)\")"
     ]
   }
 }
