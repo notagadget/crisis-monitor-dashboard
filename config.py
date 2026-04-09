@@ -84,7 +84,7 @@ SIGNAL_DESC = {
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 # Ordered most-likely to least-likely
 SCENARIOS = [
-    {"pct": "20%", "color": "#126030", "name": "A — Resolution",
+    {"pct": "30%", "color": "#126030", "name": "A — Resolution",
      "desc": "Ceasefire holds, Hormuz reopens conditionally. Iran reparations framework agreed.", "active": True},
     {"pct": "40%", "color": "#1a6bb0", "name": "B — Partial Resolution",
      "desc": "Ceasefire → stalled negotiations → toll regime. Partial Hormuz reopening.", "active": False},
@@ -101,7 +101,7 @@ WAITING_LIST = [
     {
         "ticker": "XOM / CVX",
         "status": "patience",
-        "when": "Wait Islamabad Outcome",
+        "when": "Wait Islamabad Apr 12",
         "cond": "Ceasefire pause \u2014 wait for Islamabad talks (Apr 12) outcome before entering energy longs.",
         "alloc": "$3,000",
     },
@@ -155,8 +155,8 @@ CALENDAR = [
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 40 - April 09, 2026",
+    "label": "Day 41 - April 09, 2026",
     "body": (
-        "Ceasefire holds Day 2. Thesis remains paused with $16,500 dry powder available. Islamabad talks April 12 critical - Pakistan mediating between US/Iran on Hormuz reopening terms. GLD testing 100-day SMA breakout. No re-entry signals until ceasefire breakdown confirmed."
+        "Ceasefire holds Day 2. Thesis remains PAUSED with 4 signals TRIGGERED. Islamabad talks April 12 critical - breakdown would clear re-entry path. Dry powder $16,500 ready. GLD watching for 100-day SMA breakout confirmation."
     ),
 }
