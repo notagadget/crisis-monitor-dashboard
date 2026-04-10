@@ -3,7 +3,7 @@ config.py — static constants only. Edit this file to update positions,
 signals, waiting list entries, or calendar events. No logic here.
 """
 # App Version Number
-APP_VERSION = "v0.92"
+APP_VERSION = "v0.93"
 LAST_UPDATED = "April 9, 2026"  # update manually or via Morning Sync
 
 # Re-entry Signal Mode
@@ -95,11 +95,11 @@ SIGNAL_CLEAR = {
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 # Ordered most-likely to least-likely
 SCENARIOS = [
-    {"pct": "30%", "color": "#126030", "name": "A — Resolution",
-     "desc": "Ceasefire holds, Hormuz reopens conditionally. Iran reparations framework agreed.", "active": True},
-    {"pct": "40%", "color": "#1a6bb0", "name": "B — Partial Resolution",
-     "desc": "Ceasefire → stalled negotiations → toll regime. Partial Hormuz reopening.", "active": False},
-    {"pct": "45%", "color": "#a81828", "name": "C — Escalation",
+    {"pct": "40%", "color": "#126030", "name": "A — Resolution",
+     "desc": "Ceasefire holds, Hormuz reopens conditionally. Iran reparations framework agreed.", "active": False},
+    {"pct": "45%", "color": "#1a6bb0", "name": "B — Partial Resolution",
+     "desc": "Ceasefire → stalled negotiations → toll regime. Partial Hormuz reopening.", "active": True},
+    {"pct": "15%", "color": "#a81828", "name": "C — Escalation",
      "desc": "Ceasefire breaks down after Apr 22 expiry. Strikes resume. Hormuz fully closed.", "active": False},
 ]
 
@@ -156,19 +156,23 @@ WAITING_LIST = [
 
 # ── CALENDAR ──────────────────────────────────────────────────────────────────
 CALENDAR = [
-    {"date": "Apr 10", "event": "CPI report — first post-war inflation read",            "crit": True},
-    {"date": "Apr 12", "event": "Islamabad talks — Vance/Witkoff/Kushner first round",  "crit": True},
-    {"date": "Apr 21", "event": "NOC earnings",                                          "crit": False},
-    {"date": "Apr 22", "event": "Ceasefire expires — re-evaluate thesis",               "crit": True},
-    {"date": "Apr 28", "event": "RTX earnings (before open)",                            "crit": False},
-    {"date": "Apr 30", "event": "LIN earnings",                                          "crit": False},
+    {"date": "Apr 10", "event": "CPI report — first post-war inflation read",           "crit": False},
+    {"date": "Apr 12", "event": "Islamabad talks — Vance/Witkoff/Kushner round 1",      "crit": True},
+    {"date": "Apr 21", "event": "NOC earnings",                                         "crit": False},
+    {"date": "Apr 22", "event": "Ceasefire expires — re-evaluate thesis",              "crit": True},
+    {"date": "Apr 28", "event": "RTX earnings (before open)",                           "crit": False},
+    {"date": "Apr 30", "event": "LIN earnings",                                         "crit": False},
 ]
 
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 41 - April 09, 2026",
+    "label": "Day 40 — April 9, 2026 — Ceasefire Holding, Hormuz Effectively Closed",
     "body": (
-        "Ceasefire holds Day 2. Thesis remains PAUSED with 4 signals TRIGGERED. Islamabad talks April 12 critical - breakdown would clear re-entry path. Dry powder $33,601 ready (E*Trade $13,908 + Fidelity $19,693). GLD watching for 100-day SMA breakout confirmation."
+        "Ceasefire largely holding but Hormuz remains effectively closed — only 5–9 vessels "
+        "transited in first 24hrs vs 100+ prewar norm. Iran halted tanker traffic citing Israeli "
+        "Lebanon strikes; IRGC released mine-routing map. US/Iran have incompatible public "
+        "positions on what was agreed. Islamabad talks begin Saturday (Vance/Witkoff/Kushner). "
+        "S3/S4/S8 remain TRIGGERED. Hold dry powder. Saturday talks are next binary."
     ),
 }

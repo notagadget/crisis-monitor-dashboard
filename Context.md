@@ -1,7 +1,11 @@
 # Crisis Trade Monitor — Project Context
-Last updated: April 8, 2026 (Day 39 — Thesis Paused / Ceasefire Day 1)
+Last updated: April 9, 2026 (Day 40 — Thesis Paused / Ceasefire Day 2)
 
 ## Changelog
+- Apr 9: Day 40. Ceasefire holding but Hormuz effectively closed (5–9 ships/24hrs vs 100+ norm).
+  Iran halted tanker traffic citing Lebanon strikes; released mine-routing map. IRGC and US have
+  incompatible public accounts of the deal. Islamabad talks Sat Apr 12 (Vance/Witkoff/Kushner).
+  Scenarios updated: B now modal (45%), A reduced to 40%. S3/S4/S8 remain TRIGGERED.
 - Apr 8: All thesis positions exited. Ceasefire announced. Signals updated. v0.92.
   - JETS puts closed $0.55 (entry $1.72) → −$1,170
   - RTX/NOC/LIN/VTIP equities: ~+$100 combined
@@ -80,9 +84,9 @@ Waiting list priority unchanged — XOM/CVX first, then APD, MOS/CF
 **3 triggered (S3+S4+S8) → exit rule executed correctly on Apr 8.**
 Re-entry requires: ceasefire breakdown + S3 or S8 downgrade to CAUTION/CLEAR.
 
-## Scenario Probabilities (Apr 8 — based on prediction market data)
-- A — Resolution (45%): Ceasefire holds, Islamabad talks produce framework, Hormuz conditionally reopens
-- B — Partial Resolution (40%): Ceasefire → stalled negotiations → toll regime, partial reopening
+## Scenario Probabilities (Apr 9 — based on observable reality vs. market optimism)
+- A — Resolution (40%): Ceasefire holds, Islamabad talks produce framework, Hormuz conditionally reopens
+- B — Partial Resolution (45%, modal): Ceasefire → stalled negotiations → toll regime, partial reopening
 - C — Escalation (15%): Ceasefire breaks down post-Apr 22, strikes resume
 
 ### Prediction Market Signals (Apr 8)
