@@ -16,7 +16,7 @@ from config import (
     POSITIONS, OPTIONS_POSITIONS, SIGNAL_NAMES, SIGNAL_DESC,
     SIGNAL_DEFAULTS, WAITING_LIST, DRY_POWDER, THESIS_PAUSED, USER_TZ,
 )
-from data import fetch_prices, fetch_option_prices, countdown_to_deadline
+from data import fetch_prices, fetch_option_prices, countdown_to_deadline, fetch_portwatch_transits
 from analysis import (
     calc_pnl, calc_option_pnl, thesis_totals, legacy_totals,
     score_signals, build_prompt, build_sync_prompt, render_ai_html,
@@ -27,7 +27,7 @@ from components import (
     equity_card_html, option_card_html, cash_card_html,
     legacy_card_html, thesis_bucket_html, legacy_bucket_html,
     wait_card_html, calendar_html, score_box_html,
-    prediction_markets_html,
+    prediction_markets_html, portwatch_gauge_html,
 )
 from kalshi import fetch_kalshi_markets, fetch_polymarket_odds, format_markets_for_prompt
 from github_state import (
@@ -75,8 +75,9 @@ if "markets_str" not in st.session_state:
     st.session_state.markets_str = ""
 
 # ── LIVE DATA ─────────────────────────────────────────────────────────────────
-prices       = fetch_prices()
-option_data  = fetch_option_prices()
+prices           = fetch_prices()
+option_data      = fetch_option_prices()
+portwatch_data   = fetch_portwatch_transits()
 
 # Build per-option results (pnl, price, source) for all active options
 options_results = []
@@ -132,6 +133,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(prediction_markets_html(kalshi_data, poly_data), unsafe_allow_html=True)
+st.markdown(portwatch_gauge_html(portwatch_data), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MORNING SYNC PANEL
@@ -198,6 +200,7 @@ with st.expander("⚡ Morning Sync — AI update + commit to GitHub", expanded=F
                             st.session_state.signals,
                             markets_str,
                             options_results=options_results,
+                            portwatch=portwatch_data,
                         ),
                     }],
                 )
@@ -503,6 +506,7 @@ with col_ai:
                                 st.session_state.signals,
                                 st.session_state.markets_str,
                                 options_results=options_results,
+                                portwatch=portwatch_data,
                             ),
                         }],
                     )

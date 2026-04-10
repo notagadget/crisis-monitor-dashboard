@@ -122,7 +122,7 @@ def score_signals(signals: dict) -> dict:
 # ── DAILY ANALYSIS PROMPT ─────────────────────────────────────────────────────
 
 def build_prompt(prices: dict, signals: dict, markets_str: str = "",
-                 options_results: list | None = None) -> str:
+                 options_results: list | None = None, portwatch: dict | None = None) -> str:
     """
     Build the Claude analysis prompt from live data.
     markets_str: formatted prediction market string from kalshi.format_markets_for_prompt()
@@ -156,7 +156,17 @@ def build_prompt(prices: dict, signals: dict, markets_str: str = "",
         f"{w['ticker']} ({w['when'].lower()})" for w in WAITING_LIST
     )
 
-    markets_section = f"\n{ANALYST_PRIORS}\n\n{markets_str}\n" if markets_str else f"\n{ANALYST_PRIORS}\n"
+    # Build PortWatch context
+    pw_line = ""
+    if portwatch and not portwatch.get("error"):
+        pw_line = (
+            f"HORMUZ TRANSIT DATA (IMF PortWatch): "
+            f"7-day MA = {portwatch.get('ma7','N/A')} vessels/day | "
+            f"Yesterday = {portwatch.get('latest','N/A')} | "
+            f"Thesis exit threshold = 60 | Prewar baseline = 110\n\n"
+        )
+
+    markets_section = f"\n{ANALYST_PRIORS}\n\n{pw_line}{markets_str}\n" if markets_str else f"\n{ANALYST_PRIORS}\n\n{pw_line}"
 
     return f"""You are a geopolitical crisis trading analyst. Today is {date.today().strftime('%B %d, %Y')}.
 
@@ -189,7 +199,7 @@ Respond with exactly 5 sections, under 70 words each:
 # ── MORNING SYNC PROMPT (MERGED) ──────────────────────────────────────────────
 
 def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
-                      options_results: list | None = None) -> str:
+                      options_results: list | None = None, portwatch: dict | None = None) -> str:
     """
     Combined morning sync prompt: Claude returns structured JSON with
     config patches AND a full intelligence brief + updated scenario probabilities.
@@ -255,6 +265,16 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
     # Format prices as plain strings to avoid JSON escape issues
     def px(t): return str(round(prices[t], 2)) if t in prices else 'N/A'
 
+    # Build PortWatch context
+    pw_line = ""
+    if portwatch and not portwatch.get("error"):
+        pw_line = (
+            f"HORMUZ TRANSIT DATA (IMF PortWatch): "
+            f"7-day MA = {portwatch.get('ma7','N/A')} vessels/day | "
+            f"Yesterday = {portwatch.get('latest','N/A')} | "
+            f"Thesis exit threshold = 60 | Prewar baseline = 110\n\n"
+        )
+
     return f"""You are a geopolitical crisis trading analyst. Today is {today}.
     Produce a single JSON response combining a morning briefing AND a full intelligence brief.
 
@@ -270,7 +290,7 @@ def build_sync_prompt(prices: dict, current_signals: dict, markets_str: str,
 
 {ANALYST_PRIORS}
 
-{markets_str}
+{pw_line}{markets_str}
 
 CURRENT EXIT SIGNALS (0=clear, 1=caution, 2=triggered):
 {sig_ctx}

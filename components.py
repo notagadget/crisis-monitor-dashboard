@@ -392,6 +392,76 @@ def prediction_markets_html(kalshi: list, poly: list) -> str:
     )
 
 
+def portwatch_gauge_html(pw: dict) -> str:
+    """
+    Renders a Hormuz transit gauge showing daily count, 7-day MA,
+    and progress toward the 60-vessel thesis resolution threshold.
+    pw: dict from fetch_portwatch_transits()
+    """
+    if pw.get("error") and not pw.get("ma7"):
+        return (
+            f'<div style="background:var(--surface);border:1px solid var(--border);'
+            f'border-radius:4px;padding:8px 16px;margin-bottom:8px;'
+            f'font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3);">'
+            f'⚓ HORMUZ TRANSITS — unavailable: {pw.get("error","unknown")}'
+            f'</div>'
+        )
+
+    threshold = pw["threshold"]   # 60
+    ma7       = pw.get("ma7")
+    latest    = pw.get("latest")
+    prewar    = 110  # prewar daily average
+
+    # Progress bar: 0 = fully closed, 60 = thesis resolution, 110 = prewar normal
+    pct_of_threshold = min((ma7 or 0) / threshold * 100, 100)
+    pct_of_prewar    = min((ma7 or 0) / prewar * 100, 100)
+
+    # Color: red < 20, amber 20–59, green >= 60
+    if (ma7 or 0) >= threshold:
+        bar_color, status_color, status = "#24a060", "#126030", "THRESHOLD MET"
+    elif (ma7 or 0) >= 20:
+        bar_color, status_color, status = "#d48818", "#b86800", "PARTIAL"
+    else:
+        bar_color, status_color, status = "#d83040", "#a81828", "CLOSED"
+
+    ma7_str    = f"{ma7:.0f}" if ma7 is not None else "—"
+    latest_str = f"{latest:.0f}" if latest is not None else "—"
+
+    bar_width = max(pct_of_threshold, 2)  # min 2% so bar is always visible
+
+    return (
+        f'<div style="background:var(--surface);border:1px solid var(--border);'
+        f'border-radius:4px;padding:8px 20px;margin-bottom:8px;">'
+        f'<div style="display:flex;align-items:center;gap:24px;margin-bottom:6px;">'
+        f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;'
+        f'letter-spacing:1px;text-transform:uppercase;color:var(--text3);">⚓ HORMUZ TRANSITS</span>'
+        f'<span style="font-family:JetBrains Mono,monospace;font-size:9px;'
+        f'font-weight:700;color:{status_color};">{status}</span>'
+        f'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text2);">'
+        f'7d MA: <b>{ma7_str}</b> vessels</span>'
+        f'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3);">'
+        f'Yesterday: {latest_str}</span>'
+        f'<span style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--text3);">'
+        f'Threshold: 60 &nbsp;|&nbsp; Prewar: ~110</span>'
+        f'</div>'
+        # Progress bar
+        f'<div style="background:#e8eaf0;border-radius:3px;height:8px;position:relative;">'
+        f'<div style="background:{bar_color};width:{bar_width:.0f}%;height:8px;'
+        f'border-radius:3px;transition:width 0.3s;"></div>'
+        # Threshold marker at 60/110 = 54.5%
+        f'<div style="position:absolute;top:-2px;left:54.5%;width:2px;height:12px;'
+        f'background:#0b4580;opacity:0.6;"></div>'
+        f'</div>'
+        f'<div style="display:flex;justify-content:space-between;'
+        f'font-family:JetBrains Mono,monospace;font-size:8px;color:var(--text3);margin-top:3px;">'
+        f'<span>0</span>'
+        f'<span style="color:#0b4580;">← thesis exits at 60</span>'
+        f'<span>110 (prewar)</span>'
+        f'</div>'
+        f'</div>'
+    )
+
+
 def score_box_html(score: dict) -> str:
     return (
         f'<div class="score-box">'
