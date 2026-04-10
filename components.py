@@ -276,13 +276,13 @@ def thesis_bucket_html(equity_rows: dict, options_rows: list, total: float) -> s
     """
     eq_html = "".join(
         f'<div class="bucket-row"><span>{t} {POSITIONS[t]["shares"]}sh</span>'
-        f'<span style="color:{"#3dd880" if v>=0 else "#ff6070"};">'
+        f'<span style="color:{\'#3dd880\' if v>=0 else \'#ff6070\'};">'
         f'{_sign(v)}${v:,.2f}</span></div>'
         for t, v in equity_rows.items()
     )
     opts_html = "".join(
         f'<div class="bucket-row"><span>{r["label"]}</span>'
-        f'<span style="color:{"#3dd880" if (r["pnl"] or 0)>=0 else "#ff6070"};">'
+        f'<span style="color:{\'#3dd880\' if (r["pnl"] or 0)>=0 else \'#ff6070\'};">'
         f'{_sign(r["pnl"] or 0)}${(r["pnl"] or 0):,.2f}</span></div>'
         for r in options_rows
     )
@@ -304,7 +304,7 @@ def thesis_bucket_html(equity_rows: dict, options_rows: list, total: float) -> s
 def legacy_bucket_html(rows: dict, total: float) -> str:
     rows_html = "".join(
         f'<div class="bucket-row"><span>{t} {POSITIONS[t]["shares"]}sh</span>'
-        f'<span style="color:{"#126030" if v >= 0 else "#a81828"};">{_sign(v)}${v:,.0f}</span></div>'
+        f'<span style="color:{\'#126030\' if v >= 0 else \'#a81828\'};">{_sign(v)}${v:,.0f}</span></div>'
         for t, v in rows.items()
     )
     total_color = "#126030" if total >= 0 else "#a81828"
