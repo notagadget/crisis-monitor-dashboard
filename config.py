@@ -3,8 +3,8 @@ config.py — static constants only. Edit this file to update positions,
 signals, waiting list entries, or calendar events. No logic here.
 """
 # App Version Number
-APP_VERSION = "v0.94"
-LAST_UPDATED = "April 9, 2026"  # update manually or via Morning Sync
+APP_VERSION = "v0.10"
+LAST_UPDATED = "April 13, 2026"  # update manually or via Morning Sync
 
 # Re-entry Signal Mode
 THESIS_PAUSED = True   # False when active positions exist
@@ -49,14 +49,14 @@ DRY_POWDER = 33_601  # E*Trade 13,908 + Fidelity 19,693
 # Default state: 0=clear, 1=caution, 2=triggered
 # Update defaults here when a signal's status changes materially between sessions
 SIGNAL_DEFAULTS = {
-    "s1": 0,  # war risk premiums easing with ceasefire
-    "s2": 0,  # curve flattening as oil retreats
-    "s3": 1,  # TRIGGERED — stays, ceasefire is a diplomatic signal
-    "s4": 1,  # TRIGGERED — ceasefire confirms pragmatist faction
-    "s5": 0,  # unchanged
-    "s6": 0,  # unchanged
-    "s7": 1,  # crowding risk resolved with exit
-    "s8": 1,  # TRIGGERED — ceasefire = resolution post equivalent
+    "s1": 1,  # CAUTION — blockade will push war risk premiums higher again
+    "s2": 1,  # CAUTION — WTI/Brent rising; backwardation likely steepening
+    "s3": 0,  # CLEAR — Islamabad failure reverses the diplomatic signal
+    "s4": 0,  # CLEAR — Iran rejected all US nuclear terms; pragmatist faction failed
+    "s5": 0,  # unchanged — Ras Laffan structurally still closed
+    "s6": 0,  # unchanged — SPR release ongoing
+    "s7": 1,  # CAUTION — energy bull consensus re-emerging with blockade
+    "s8": 0,  # CLEAR — naval blockade is the opposite of a resolution post
 }
 
 SIGNAL_NAMES = {
@@ -71,14 +71,14 @@ SIGNAL_NAMES = {
 }
 
 SIGNAL_DESC = {
-    "s1": "War risk premiums easing with ceasefire announcement. Shipping insurance declining.",
-    "s2": "Oil retreating as ceasefire reduces immediate supply disruption risk. Backwardation flattening.",
-    "s3": "TRIGGERED: Ceasefire = diplomatic resolution signal. China-Pakistan mediation active throughout.",
-    "s4": "TRIGGERED: Ceasefire confirms pragmatist faction influence. Pezeshkian-aligned outcome.",
-    "s5": "Ras Laffan structurally still closed. Selective Hormuz opening does not reopen LNG/helium routes.",
+    "s1": "CAUTION: Naval blockade pushing war risk premiums higher. Shipping insurance costs reversing the post-ceasefire easing.",
+    "s2": "CAUTION: WTI/Brent rising on blockade announcement. Backwardation likely steepening again as supply squeeze resumes.",
+    "s3": "CLEAR: Islamabad talks failed Apr 12 after 21 hours — diplomatic signal reversed. Pakistan still attempting re-engagement.",
+    "s4": "CLEAR: Iran rejected all US nuclear red lines in Islamabad. Pragmatist faction could not deliver. Ceasefire signal fully unwound.",
+    "s5": "Ras Laffan structurally still closed. Ceasefire and blockade do not reopen LNG/helium routes.",
     "s6": "SPR release ongoing. No drawdown slowdown observed.",
-    "s7": "Energy bull thesis unwinding with ceasefire — crowding risk resolved with exit.",
-    "s8": "TRIGGERED: Ceasefire declared April 8 — resolution equivalent per exit rule.",
+    "s7": "CAUTION: Energy bull thesis re-emerging with naval blockade. Media consensus building again — crowding risk returning.",
+    "s8": "CLEAR: Trump announced naval blockade Apr 13 — direct reversal of the ceasefire/resolution signal that triggered S8.",
 }
 
 SIGNAL_CLEAR = {
@@ -95,12 +95,12 @@ SIGNAL_CLEAR = {
 # ── SCENARIOS ─────────────────────────────────────────────────────────────────
 # Ordered most-likely to least-likely
 SCENARIOS = [
-    {"pct": "40%", "color": "#126030", "name": "A — Resolution",
-     "desc": "Ceasefire holds, Hormuz reopens conditionally. Iran reparations framework agreed.", "active": False},
-    {"pct": "45%", "color": "#1a6bb0", "name": "B — Partial Resolution",
-     "desc": "Ceasefire → stalled negotiations → toll regime. Partial Hormuz reopening.", "active": True},
-    {"pct": "15%", "color": "#a81828", "name": "C — Escalation",
-     "desc": "Ceasefire breaks down after Apr 22 expiry. Strikes resume. Hormuz fully closed.", "active": False},
+    {"pct": "55%", "color": "#a81828", "name": "C — Escalation",
+     "desc": "Ceasefire expires Apr 22, naval blockade active, talks dead. Strikes resume. Hormuz fully closed.", "active": True},
+    {"pct": "30%", "color": "#1a6bb0", "name": "B — Partial Resolution",
+     "desc": "Pakistan re-engages, second round of talks. Stalemate → toll regime. Partial Hormuz reopening.", "active": False},
+    {"pct": "15%", "color": "#126030", "name": "A — Resolution",
+     "desc": "Iran accepts nuclear framework. Full Hormuz reopening. Requires reversal of current IRGC/government position.", "active": False},
 ]
 
 DEADLINE_ISO = "2026-04-22T20:00:00"   # ET — ceasefire expiry
@@ -110,69 +110,44 @@ USER_TZ      = "America/Detroit"       # Your local timezone for timestamps
 # ── WAITING LIST ──────────────────────────────────────────────────────────────
 # status options: ready | event | watching | patience
 WAITING_LIST = [
-    {
-        "ticker": "XOM / CVX",
-        "status": "patience",
-        "when": "Wait Islamabad Apr 12",
-        "cond": "Ceasefire pause \u2014 wait for Islamabad talks (Apr 12) outcome before entering energy longs.",
-        "alloc": "$3,000",
-    },
-    {
-        "ticker": "APD",
-        "status": "watching",
-        "when": "Ras Laffan Structural",
-        "cond": "Ras Laffan LNG/helium still structurally closed. Ceasefire does not reopen helium routes.",
-        "alloc": "$2,000",
-    },
-    {
-        "ticker": "MOS / CF",
-        "status": "watching",
-        "when": "Supply Disruption",
-        "cond": "Fertilizer supply disruption persists structurally even under ceasefire. Spring planting watch.",
-        "alloc": "$2,000",
-    },
-    {
-        "ticker": "USO calls",
-        "status": "patience",
-        "when": "Post-Ceasefire",
-        "cond": "Wait for ceasefire breakdown confirmation. Do not buy vol on ambiguity.",
-        "alloc": "$1,000\u20131,500",
-    },
-    {
-        "ticker": "SLB",
-        "status": "patience",
-        "when": "Post-Ceasefire",
-        "cond": "Wait for XOM/CVX drilling capex announcement as trigger. Ceasefire pause.",
-        "alloc": "$2,000",
-    },
-    {
-        "ticker": "GLD calls",
-        "status": "watching",
-        "when": "Technical",
-        "cond": "Add calls on 2 consecutive closes above 100-day SMA. Check Apr 9 close.",
-        "alloc": "$1,500",
-    },
+    {"ticker": "XOM / CVX", "status": "watching", "when": "⚠ Watching — Don't Chase",
+     "cond": "Blockade active — re-entry criteria met in principle. Set limit orders 2-3% below current levels ($148-149 XOM, $186-187 CVX). Do not chase the open spike.",
+     "alloc": "$3,000"},
+    {"ticker": "APD",       "status": "watching", "when": "Ras Laffan Structural",
+     "cond": "Ras Laffan LNG/helium still structurally closed. Escalation strengthens the thesis. Independent of ceasefire outcome.",
+     "alloc": "$2,000"},
+    {"ticker": "MOS / CF",  "status": "watching", "when": "Supply Disruption",
+     "cond": "Fertilizer supply disruption thesis strengthened by escalation. Spring planting watch remains active.",
+     "alloc": "$2,000"},
+    {"ticker": "USO calls", "status": "watching", "when": "⚠ Watching — Don't Chase",
+     "cond": "Blockade active. Wait for vol to settle post-spike before buying calls. Confirmed closure only — wait for PortWatch data.",
+     "alloc": "$1,000–1,500"},
+    {"ticker": "SLB",       "status": "patience", "when": "Post-Ceasefire",
+     "cond": "Wait for XOM/CVX drilling capex announcement as trigger. Not yet.",
+     "alloc": "$2,000"},
+    {"ticker": "GLD calls", "status": "ready", "when": "✓ Technical Trigger Met",
+     "cond": "GLD at $435.36 — well above 100-day SMA (~$428). 2+ consecutive closes above SMA criterion met. Add on next pullback.",
+     "alloc": "$1,500"},
 ]
 
 # ── CALENDAR ──────────────────────────────────────────────────────────────────
 CALENDAR = [
-    {"date": "Apr 10", "event": "CPI report — first post-war inflation read",           "crit": False},
-    {"date": "Apr 12", "event": "Islamabad talks — Vance/Witkoff/Kushner round 1",      "crit": True},
-    {"date": "Apr 21", "event": "NOC earnings",                                         "crit": False},
-    {"date": "Apr 22", "event": "Ceasefire expires — re-evaluate thesis",              "crit": True},
-    {"date": "Apr 28", "event": "RTX earnings (before open)",                           "crit": False},
-    {"date": "Apr 30", "event": "LIN earnings",                                         "crit": False},
+    {"date": "Apr 13", "event": "US naval blockade of Iranian ports begins — 10am ET", "crit": True},
+    {"date": "Apr 21", "event": "NOC earnings",                                          "crit": False},
+    {"date": "Apr 22", "event": "Ceasefire expires — hard re-entry decision point",     "crit": True},
+    {"date": "Apr 28", "event": "RTX earnings (before open)",                            "crit": False},
+    {"date": "Apr 30", "event": "LIN earnings",                                          "crit": False},
 ]
 
 # ── DAY SUMMARY ───────────────────────────────────────────────────────────────
 # Update this dict each morning — it's the only manually-edited daily content
 DAY_SUMMARY = {
-    "label": "Day 40 — April 9, 2026 — Ceasefire Holding, Hormuz Effectively Closed",
+    "label": "Day 44 — April 13, 2026 — Escalation Confirmed",
     "body": (
-        "Ceasefire largely holding but Hormuz remains effectively closed — only 5–9 vessels "
-        "transited in first 24hrs vs 100+ prewar norm. Iran halted tanker traffic citing Israeli "
-        "Lebanon strikes; IRGC released mine-routing map. US/Iran have incompatible public "
-        "positions on what was agreed. Islamabad talks begin Saturday (Vance/Witkoff/Kushner). "
-        "S3/S4/S8 remain TRIGGERED. Hold dry powder. Saturday talks are next binary."
+        "Islamabad talks collapsed after 21 hours (Apr 12). US naval blockade of Iranian ports "
+        "effective today. ~17 ships/day transiting Hormuz vs 130 baseline — well below 60-vessel "
+        "re-entry threshold. Scenarios reset: C(Escalation) now modal at 55%. Signals S3/S4/S8 "
+        "cleared; S1/S2/S7 flipped to caution. Re-entry criteria met in principle — "
+        "do not chase today's spike. GLD calls technical trigger confirmed."
     ),
 }
